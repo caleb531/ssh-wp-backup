@@ -69,11 +69,15 @@ specially-formatted configuration file. This configuration file *must* have the
 	- (*e.g.* `~/public_html/mysite`)
 - `remote_backup`: The absolute path to the database backup file to be created.
 	- For security, this path should be outside of the `public_html/` directory
-	- (*e.g.* `~/mysitedb.tar.gz`)
+	- The filename may include `date` format sequences such as `%Y`
+	- (*e.g.* `~/mysitedb-%Y-%m-%d.sql.gz`)
 - `local_backup`: The absolute path to the local backup file to be created
 (or the path to its containing directory)
+	- The filename may also include `date` format sequences
+	- (*e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`)
+	- (*e.g.* `~/Documents/Backups`)
 
-Please see the included 'example.ini' file for an example configuration.
+Please see the included `example.ini` file for an example configuration.
 
 ## Running the utility
 
