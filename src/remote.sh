@@ -11,7 +11,7 @@ wp_config="$(< $wp_config_path)"
 
 # Retrieve value for the given key in wp-config
 get_config_value() {
-	key_name="$1"
+	local key_name="$1"
 	echo "$wp_config" | grep -oP "(?<=define\('$key_name', ')(.*)(?='\);)"
 }
 
