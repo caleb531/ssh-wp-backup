@@ -2,11 +2,11 @@
 # Script to execute on remote server via SSH
 
 # Assign more-meaningful names to received script parameters
-wp_dir="$1"
-backup_path="$2"
+wordpress_path="$1"
+remote_backup_path="$2"
 
 # Retrieve and store contents of wp-config
-wp_config_path="$wp_dir/wp-config.php"
+wp_config_path="$wordpress_path/wp-config.php"
 wp_config="$(< $wp_config_path)"
 
 # Retrieve value for the given key in wp-config
@@ -27,4 +27,4 @@ mysqldump "$db_name" \
 	-h "$db_host" \
 	-u "$db_user" \
 	-p"$db_pswd" \
-	| gzip -c > "$backup_path"
+	| gzip -c > "$remote_backup_path"
