@@ -3,25 +3,25 @@
 *Copyright 2015 Caleb Evans*
 *Released under the MIT license*
 
-WordPress SSH Backup is a command line utility for creating local backups of a
+SSH WordPress Backup is a command line utility for creating local backups of a
 remote WordPress database via SSH.
 
-# Getting Started
+## Getting Started
 
-## Requirements
+### Requirements
 
 This utility assumes that you have (or have access to) the following:
 
 1. A Linux-based server with support for SSH
 2. A remote WordPress installation on said server
 
-## Configuring SSH
+### Configuring SSH
 
 If you have not yet configured SSH key-based authentication on your server,
 please follow the steps below. If you know what you're doing, feel free to skip
 any of these instructions.
 
-### Create an SSH key
+#### Create an SSH key
 
 To create a public SSH key for connecting to the remote server, run the
 following command:
@@ -35,7 +35,7 @@ immediately to save to the default location (`~/.ssh/id_rsa`). When prompted to
 enter a passphrase, press `Enter` to leave the passphrase blank (this will
 ensure that the utility works completely automatically).
 
-### Copy the public key to the remote server
+#### Copy the public key to the remote server
 
 To copy your newly-created public SSH key to the remote server, run the
 following command. You will need to specify the server user in the form
@@ -59,7 +59,7 @@ If all goes well, the shell will display a message indicating that a key has
 been added. At this point, you can run the WordPress SSH Backup utility without
 needing to authenticate again at any point.
 
-## Configuration files
+### Configuration files
 
 This command line utility requires a single argument: the path to a
 specially-formatted configuration file. This configuration file *must* have the
@@ -79,7 +79,7 @@ specially-formatted configuration file. This configuration file *must* have the
 
 Please see the included `example.ini` file for an example configuration.
 
-## Running the utility
+### Running the utility
 
 Once you have crafted one or more configuration files to your liking, you can
 run the utility by executing the script `src/local.sh` and providing the path to
