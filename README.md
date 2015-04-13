@@ -65,17 +65,34 @@ This command line utility requires a single argument: the path to a
 specially-formatted configuration file. This configuration file *must* have the
 `.ini` extension and *must* contain the following properties:
 
-- `wordpress`: The absolute path to the remote WordPress site.
-	- (*e.g.* `~/public_html/mysite`)
-- `remote_backup`: The absolute path to the database backup file to be created.
-	- For security, this path should be outside of the `public_html/` directory
-	- The filename may include `date` format sequences such as `%Y`
-	- (*e.g.* `~/mysitedb-%Y-%m-%d.sql.gz`)
-- `local_backup`: The absolute path to the local backup file to be created
+#### [paths]
+
+- `wordpress`: the absolute path to the remote WordPress site
+	- *e.g.* `~/public_html/mysite`
+- `remote_backup`: the absolute path to the database backup file to be created
+	- for security, this path should be outside of the `public_html/` directory
+	- the filename may include `date` format sequences such as `%Y`
+	- *e.g.* `~/mysitedb-%Y-%m-%d.sql.gz`
+- `local_backup`: the absolute path to the local backup file to be created
 (or the path to its containing directory)
-	- The filename may also include `date` format sequences
-	- (*e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`)
-	- (*e.g.* `~/Documents/Backups`)
+	- the filename may also include `date` format sequences
+	- *e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`
+	- *e.g.* `~/Documents/Backups`
+
+#### [ssh]
+
+- `user`: the name of the user under which to log in
+	- This is concatenated with the given hostname internally
+	- *e.g.* `myname`
+- `hostname`: the hostname or IP address used to connect.
+- `port`: the port number used to connect
+
+#### [db]
+
+- `compressor`: optional; an alternate compressor to use (including optional arguments)
+	- compressor *must* send output to stdout
+	- if not compressor is given, defaults to `gzip -c`
+	- *e.g.* `bzip2 -c`
 
 Please see the included `example.ini` file for an example configuration.
 
