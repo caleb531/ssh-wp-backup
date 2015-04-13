@@ -3,7 +3,7 @@
 
 # Parse the given iniuration file
 ini_path="$1"
-program_dir="$(dirname "${BASH_SOURCE[0]}")"
+program_dir="$(dirname "$(readlink -f "$0")")"
 source "$program_dir"/deps/read_ini.sh
 read_ini "$ini_path" --prefix ini
 
