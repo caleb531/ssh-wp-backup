@@ -1,10 +1,13 @@
-# SSH WordPress Backup
+# SSH WordPress Backup (beta)
 
 *Copyright 2015 Caleb Evans*  
 *Released under the MIT license*
 
 SSH WordPress Backup is a command line utility for creating local backups of a
 remote WordPress database via SSH.
+
+Please note that this utility is under active development, and therefore is
+subject to frequent and sudden API changes.
 
 ## Getting Started
 
@@ -104,6 +107,9 @@ specially-formatted configuration file. This configuration file *must* have the
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
 	- *e.g.* `bzip2 -c`
+- `purge_remote`: a boolean indicating if the remote copy of the backup should
+	be purged after download
+	- valid values include `true`, `false`, `yes`, `no`, `on`, and `off`
 
 Please see the included [example.ini](example.ini) file for an example
 configuration.
