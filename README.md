@@ -107,9 +107,10 @@ specially-formatted configuration file. This configuration file *must* have the
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
 	- *e.g.* `bzip2 -c`
-- `purge_remote`: a boolean indicating if the remote copy of the backup should
-	be purged after download
+- `purge_remote`: optional; a boolean indicating if the remote copy of the
+	backup should be purged after download
 	- valid values include `true`, `false`, `yes`, `no`, `on`, and `off`
+	- default value is `no`
 
 Please see the included [example.ini](example.ini) file for an example
 configuration.
