@@ -18,8 +18,8 @@ ini__paths__local_backup="$(date +"$ini__paths__local_backup")"
 ini__paths__local_backup="$(expand_home "$ini__paths__local_backup")"
 
 # Compressor defaults to gzip if no alternate compressor is provided
-if [ -z "$ini__db__compressor" ]; then
-	ini__db__compressor='gzip -c'
+if [ -z "$ini__backup__compressor" ]; then
+	ini__backup__compressor='gzip -c'
 fi
 
 # Connect to server via SSH and backup database
@@ -28,9 +28,14 @@ ssh -p "$ini__ssh__port" \
 	'bash -s' < "$program_dir"/remote.sh \
 		"$ini__paths__wordpress" \
 		"$ini__paths__remote_backup" \
-		"$ini__db__compressor"
+		"$ini__backup__compressor"
 
 # Download exported database file
 scp -P "$ini__ssh__port" \
 	"$ini__ssh__user@$ini__ssh__hostname":"$ini__paths__remote_backup" \
 	"$ini__paths__local_backup"
+
+# Remove remote copy of backup
+# ssh -p "$ini__ssh__port" \
+# 	"$ini__ssh__user@$ini__ssh__hostname" \
+# 	rm "$ini__paths__remote_backup"
