@@ -36,7 +36,7 @@ scp -P "$ini__ssh__port" \
 	"$ini__paths__local_backup"
 
 # Purge remote copy of backup
-if [ ! -z "$ini__backup__purge_remote" ]; then
+if [ "$ini__backup__purge_remote" == 1 ]; then
 	ssh -p "$ini__ssh__port" \
 		"$ini__ssh__user@$ini__ssh__hostname" \
 		rm -f "$ini__paths__remote_backup"
