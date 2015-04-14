@@ -15,7 +15,8 @@ This utility assumes that you have (or have access to) the following:
 - A Linux-based server with support for SSH
 - SSH access to said server
 - A remote WordPress installation on said server
-- The `readlink` command (can be installed via `coreutils` package if missing)
+- The `readlink` command installed locally (can be installed via `coreutils`
+	package if missing)
 	- OS X (via Homebrew): `brew install coreutils`
 	- Linux: `apt-get install coreutils`
 
@@ -93,7 +94,7 @@ specially-formatted configuration file. This configuration file *must* have the
 - `hostname`: the hostname or IP address used to connect.
 - `port`: the port number used to connect
 
-#### [db]
+#### [backup]
 
 - `compressor`: optional; an alternate compressor to use (including command line
 	arguments)

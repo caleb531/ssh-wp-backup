@@ -4,7 +4,7 @@
 # Assign more-meaningful names to received script parameters
 wordpress_path="$1"
 remote_backup_path="$2"
-db_compressor="$3"
+backup_compressor="$3"
 
 # Retrieve and store contents of wp-config
 wp_config_path="$wordpress_path/wp-config.php"
@@ -28,4 +28,4 @@ mysqldump "$db_name" \
 	-h "$db_host" \
 	-u "$db_user" \
 	-p"$db_pswd" \
-	| "$db_compressor" > "$remote_backup_path"
+	| "$backup_compressor" > "$remote_backup_path"
