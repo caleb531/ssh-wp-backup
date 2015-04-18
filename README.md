@@ -26,48 +26,8 @@ This utility assumes that you have (or have access to) the following:
 ### Configuring SSH
 
 If you have not yet configured SSH key-based authentication on your server,
-please follow the steps below. If you know what you're doing, feel free to skip
-any of these instructions.
-
-#### 1. Create an SSH key
-
-To create a public SSH key for connecting to the remote server, run the
-following command:
-
-```
-ssh-keygen
-```
-
-When prompted to enter a file in which to save the key, press *Enter*
-immediately to save to the default location (`~/.ssh/id_rsa`). When prompted to
-enter a passphrase, press `Enter` to leave the passphrase blank (this will
-ensure that the utility works completely automatically).
-
-#### 2. Copy the public key to the remote server
-
-To copy your newly-created public SSH key to the remote server, run the
-following command. You will need to specify the server user in the form
-`user@hostname`.
-
-In addition, you will likely need to specify the port number via the `-p` flag.
-The port is typically `2222` for SSH connections, though you should check with
-the server's administrator or hosting provider to confirm this.
-
-```
-ssh-copy-id -p 2222 yourname@yoursite.com
-```
-
-You may be notified that the authenticity of the host can't be established. When
-asked if you want to continue connecting, type `yes` and press *Enter*.
-
-When prompted, enter the password for the given user. This is often the password
-for your hosting account's control panel, assuming you are the only user.
-
-#### 3. You're done!
-
-If all goes well, the shell will display a message indicating that a key has
-been added. At this point, you can run the WordPress SSH Backup utility without
-needing to authenticate again at any point.
+please follow the steps outlined in [this
+article](http://www.thegeekstuff.com/2008/11/3-steps-to-perform-ssh-login-without-password-using-ssh-keygen-ssh-copy-id/).
 
 ### Configuration files
 
@@ -140,6 +100,12 @@ Again, assuming the CWD is the containing directory of the cloned project:
 
 ```
 ln -s "$PWD"/ssh-wp-backup/src/local.sh /usr/local/bin/ssh-wp-backup
+```
+
+Now, you can run run the utility much more easily:
+
+```
+ssh-wp-backup ./myconfigs/mysite-config.ini
 ```
 
 ## Support
