@@ -18,7 +18,8 @@ This utility assumes that you have (or have access to) the following:
 - A Linux-based server with support for SSH
 - SSH access to said server
 - A remote WordPress installation on said server
-- The `readlink` command installed locally (can be installed via `coreutils`
+- The `mysqldump` utility on said server
+- The `readlink` utility installed locally (can be installed via `coreutils`
 	package if missing)
 	- OS X (via Homebrew): `brew install coreutils`
 	- Linux: `apt-get install coreutils`
@@ -33,7 +34,8 @@ article](http://www.thegeekstuff.com/2008/11/3-steps-to-perform-ssh-login-withou
 
 This command line utility requires a single argument: the path to a
 specially-formatted configuration file. This configuration file *must* have the
-`.ini` extension and *must* contain the following properties:
+`.ini` extension and *must* contain the following properties (except those
+properties marked as optional):
 
 #### [paths]
 
