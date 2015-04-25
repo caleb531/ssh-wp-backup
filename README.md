@@ -7,7 +7,7 @@ SSH WordPress Backup is a command line utility for creating local backups of a
 remote WordPress database via SSH.
 
 Please note that this utility is under active development, and therefore is
-subject to frequent and sudden API changes.
+subject to frequent and sudden API changes. Use at your own risk.
 
 ## Getting Started
 
@@ -19,10 +19,6 @@ This utility assumes that you have (or have access to) the following:
 - SSH access to said server
 - A remote WordPress installation on said server
 - The `mysqldump` utility on said server
-- The `readlink` utility installed locally (can be installed via `coreutils`
-	package if missing)
-	- OS X (via Homebrew): `brew install coreutils`
-	- Linux: `apt-get install coreutils`
 
 ### Configuring SSH
 

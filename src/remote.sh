@@ -13,7 +13,7 @@ wp_config="$(< $wp_config_path)"
 # Retrieve value for the given key in wp-config
 get_config_value() {
 	local key_name="$1"
-	echo "$wp_config" | grep "'$key_name'" | cut -d \' -f 4
+	echo "$wp_config" | grep "'$key_name', " | cut -d \' -f 4
 }
 
 # Database information
