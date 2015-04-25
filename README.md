@@ -40,10 +40,14 @@ properties marked as optional):
 - `remote_backup`: the absolute path to the database backup file to be created
 	- for security, this path should be outside of the `public_html/` directory
 	- the filename may include `date` format sequences such as `%Y`
-	- *e.g.* `~/mysitedb-%Y-%m-%d.sql.gz`
+	- the utility will automatically create intermediate directories apart of
+		the path if they do not exist
+	- *e.g.* `~/backups/mysitedb-%Y-%m-%d.sql.gz`
 - `local_backup`: the absolute path to the local backup file to be created (or
 	the path to its containing directory)
 	- the filename may also include `date` format sequences
+	- like `remote_backup`, the utility will also create intermediate
+		directories
 	- *e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`
 	- *e.g.* `~/Documents/Backups`
 
@@ -69,6 +73,12 @@ properties marked as optional):
 	backup should be purged after download
 	- valid values include `true`, `false`, `yes`, `no`, `on`, and `off`
 	- default value is `no`
+- `max_local_backups`: optional; the maximum number of local backups to keep
+	- as new local backups are created, old backups are purged to keep within
+		the limit
+	- this option only applies if you use date format sequences in
+		`paths.local_backup`
+	- if option is omitted, all local backups are kept
 
 Please see the included [example.ini](example.ini) file for an example
 configuration.

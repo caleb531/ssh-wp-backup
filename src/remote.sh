@@ -10,6 +10,9 @@ backup_compressor="$3"
 wp_config_path="$wordpress_path/wp-config.php"
 wp_config="$(< $wp_config_path)"
 
+# Ensure that intermediate directories in remote backup path exist
+mkdir -p "$(dirname "$remote_backup_path")"
+
 # Retrieve value for the given key in wp-config
 get_config_value() {
 	local key_name="$1"
