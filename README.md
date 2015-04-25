@@ -39,7 +39,8 @@ properties marked as optional):
 	- *e.g.* `~/public_html/mysite`
 - `remote_backup`: the absolute path to the database backup file to be created
 	- for security, this path should be outside of the `public_html/` directory
-	- the filename may include `date` format sequences such as `%Y`
+	- the filename may include [date format sequences](http://strftime.org/)
+		such as `%Y`
 	- the utility will automatically create intermediate directories apart of
 		the path if they do not exist
 	- *e.g.* `~/backups/mysitedb-%Y-%m-%d.sql.gz`
@@ -48,7 +49,7 @@ properties marked as optional):
 	- the filename may also include `date` format sequences
 	- like `remote_backup`, the utility will also create intermediate
 		directories
-	- *e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`
+	- *e.g.* `~/Documents/Backups/%Y-%m-%d/mysitedb-%H-%M-%S.sql.gz`
 	- *e.g.* `~/Documents/Backups`
 
 #### [ssh]
