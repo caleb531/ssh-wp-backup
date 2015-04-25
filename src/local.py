@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
+import ConfigParser
+import glob
 import os
 import os.path
-import sys
-import glob
 import re
-import time
 import subprocess
-import ConfigParser
+import sys
+import time
 
 
 # Make program directory globally accessible to script
@@ -37,7 +37,7 @@ def create_directory_structure(config):
 def create_remote_backup(config):
 
     # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'remote.sh')) as remote_script:
+    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
         # Connect to remote via SSH and execute remote script
         ssh = subprocess.Popen([
@@ -47,7 +47,7 @@ def create_remote_backup(config):
                 user=config.get('ssh', 'user'),
                 hostname=config.get('ssh', 'hostname')),
             # Execute script passed to stdin with the following arguments
-            'bash -s -',
+            'python -',
             config.get('paths', 'wordpress'),
             time.strftime(config.get('paths', 'remote_backup')),
             config.get('backup', 'compressor')
@@ -70,7 +70,7 @@ def download_remote_backup(config):
             hostname=config.get('ssh', 'hostname'),
             remote_path=time.strftime(config.get('paths', 'remote_backup'))),
         time.strftime(config.get('paths', 'local_backup'))
-    ], stdout=sys.stdout, stderr=sys.stderr)
+    ])
 
     # Wait for local backup to finish downloading
     scp.wait()
