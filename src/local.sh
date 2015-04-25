@@ -20,9 +20,9 @@ if [ -z "$ini__backup__compressor" ]; then
 fi
 
 # Connect to server via SSH and backup database
-ssh -p "$ini__ssh__port" \
+cat "$program_dir"/remote.sh | ssh -p "$ini__ssh__port" \
 	"$ini__ssh__user@$ini__ssh__hostname" \
-	bash -s < "$program_dir"/remote.sh \
+	bash -s - \
 		"$ini__paths__wordpress" \
 		"$ini__paths__remote_backup" \
 		"$ini__backup__compressor"
