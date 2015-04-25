@@ -39,7 +39,8 @@ properties marked as optional):
 	- *e.g.* `~/public_html/mysite`
 - `remote_backup`: the absolute path to the database backup file to be created
 	- for security, this path should be outside of the `public_html/` directory
-	- the filename may include `date` format sequences such as `%Y`
+	- the filename may include [date format sequences](http://strftime.org/)
+		such as `%Y`
 	- the utility will automatically create intermediate directories apart of
 		the path if they do not exist
 	- *e.g.* `~/backups/mysitedb-%Y-%m-%d.sql.gz`
@@ -48,7 +49,7 @@ properties marked as optional):
 	- the filename may also include `date` format sequences
 	- like `remote_backup`, the utility will also create intermediate
 		directories
-	- *e.g.* `~/Documents/Backups/mysitedb-%Y-%m-%d.sql.gz`
+	- *e.g.* `~/Documents/Backups/%Y-%m-%d/mysitedb-%H-%M-%S.sql.gz`
 	- *e.g.* `~/Documents/Backups`
 
 #### [ssh]
@@ -86,14 +87,14 @@ configuration.
 ### Running the utility
 
 Once you have crafted one or more configuration files to your liking, you can
-run the utility by executing the script `src/local.sh` and providing the path to
+run the utility by executing the script `src/local.py` and providing the path to
 a configuration file.
 
 Assuming the CWD is the containing directory of the cloned project, and assuming
 that your preferred configuration file is stored in a directory `myconfigs/`:
 
 ```
-./ssh-wp-backup/src/local.sh ./myconfigs/mysite-config.ini
+./ssh-wp-backup/src/local.py ./myconfigs/mysite-config.ini
 ```
 
 The utility will display the download progress (provided by `scp`) when copying
@@ -107,7 +108,7 @@ you do not need to type the full path every time you wish to run it.
 Again, assuming the CWD is the containing directory of the cloned project:
 
 ```
-ln -s "$PWD"/ssh-wp-backup/src/local.sh /usr/local/bin/ssh-wp-backup
+ln -sf "$PWD"/ssh-wp-backup/src/local.py /usr/local/bin/ssh-wp-backup
 ```
 
 Now, you can run run the utility much more easily:
