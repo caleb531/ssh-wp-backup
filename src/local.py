@@ -9,8 +9,9 @@ import time
 import subprocess
 import ConfigParser
 
+
 # Make program directory globally accessible to script
-program_dir = os.path.realpath('src')
+program_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 # Parse configuration files at given paths into dictionary
@@ -35,28 +36,25 @@ def create_directory_structure(config):
 # Execute remote backup script to create remote backup
 def create_remote_backup(config):
 
-    # Output contents of remote script (will be piped to following command)
-    cat = subprocess.Popen([
-        'cat',
-        os.path.join(program_dir, 'remote.sh')
-    ], stdout=subprocess.PIPE)
+    # Read remote script so as to pass contents to SSH session
+    with open(os.path.join(program_dir, 'remote.sh')) as remote_script:
 
-    # Connect to remote via SSH and execute remote script
-    ssh = subprocess.Popen([
-        'ssh',
-        '-p {port}'.format(port=config.get('ssh', 'port')),
-        '{user}@{hostname}'.format(
-            user=config.get('ssh', 'user'),
-            hostname=config.get('ssh', 'hostname')),
-        # Execute script passed to stdin with the following config arguments
-        'bash -s -',
-        config.get('paths', 'wordpress'),
-        time.strftime(config.get('paths', 'remote_backup')),
-        config.get('backup', 'compressor')
-    ], stdin=cat.stdout)
+        # Connect to remote via SSH and execute remote script
+        ssh = subprocess.Popen([
+            'ssh',
+            '-p {port}'.format(port=config.get('ssh', 'port')),
+            '{user}@{hostname}'.format(
+                user=config.get('ssh', 'user'),
+                hostname=config.get('ssh', 'hostname')),
+            # Execute script passed to stdin with the following arguments
+            'bash -s -',
+            config.get('paths', 'wordpress'),
+            time.strftime(config.get('paths', 'remote_backup')),
+            config.get('backup', 'compressor')
+        ], stdin=remote_script)
 
-    # Wait for remote backup to be created
-    ssh.wait()
+        # Wait for remote backup to be created
+        ssh.wait()
 
 
 # Download remote backup to local system
@@ -91,7 +89,7 @@ def purge_remote_backup(config):
         config.get('paths', 'remote_backup')
     ])
 
-    # Wait for remote backup to be removed from remote
+    # Wait for backup to be removed from remote
     ssh.wait()
 
 
@@ -105,8 +103,8 @@ def purge_oldest_backups(config):
     # Retrieve list of local backups sorted from oldest to newest
     local_backups = sorted(glob.iglob(local_backup_path),
                            key=lambda path: os.stat(path).st_mtime)
-    backups_to_purge = local_backups[:-int(
-        config.get('backup', 'max_local_backups'))]
+    backups_to_purge = local_backups[:-config.getint('backup',
+                                                     'max_local_backups')]
 
     for backup in backups_to_purge:
         os.remove(backup)
@@ -120,13 +118,15 @@ def main():
 
     config.set('paths', 'local_backup', os.path.expanduser(
         config.get('paths', 'local_backup')))
-
     create_directory_structure(config)
+
     create_remote_backup(config)
     download_remote_backup(config)
-    if config.get('backup', 'purge_remote'):
+
+    if config.getboolean('backup', 'purge_remote'):
         purge_remote_backup(config)
-    if config.get('backup', 'max_local_backups') and not os.path.isdir(
+
+    if config.has_option('backup', 'max_local_backups') and not os.path.isdir(
        config.get('paths', 'local_backup')):
         purge_oldest_backups(config)
 
