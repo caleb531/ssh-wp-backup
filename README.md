@@ -15,10 +15,10 @@ subject to frequent and sudden API changes. Use at your own risk.
 
 This utility assumes that you have (or have access to) the following:
 
-- A Linux-based server with support for SSH
+- A Linux server with support for SSH
 - SSH access to said server
-- A remote WordPress installation on said server
-- The `mysqldump` utility on said server
+- A WordPress installation on said server
+- The `mysqldump` utility installed on said server
 
 ### Configuring SSH
 
@@ -84,38 +84,33 @@ properties marked as optional):
 Please see the included [example.ini](example.ini) file for an example
 configuration.
 
+### Adding a command alias
+
+To make the utility easily accessible from the command line, you will need to
+symlink the utility's driver script to `/usr/local/bin`. Doing so will allow you
+to run the utility via the `ssh-wp-backup` command.
+
+Assuming the CWD is the local project directory:
+
+```
+ln -sf "$PWD"/src/local.py /usr/local/bin/ssh-wp-backup
+```
+
 ### Running the utility
 
 Once you have crafted one or more configuration files to your liking, you can
-run the utility by executing the script `src/local.py` and providing the path to
-a configuration file.
+run the utility by invoking the command `ssh-wp-backup` and providing the path
+to a configuration file.
 
-Assuming the CWD is the containing directory of the cloned project, and assuming
-that your preferred configuration file is stored in a directory `myconfigs/`:
-
-```
-./ssh-wp-backup/src/local.py ./myconfigs/mysite-config.ini
-```
-
-The utility will display the download progress (provided by `scp`) when copying
-the file from the remote server to your local machine.
-
-### Adding a command alias (optional)
-
-For convenience, you may wish to symlink this utility into `/usr/local/bin` so
-you do not need to type the full path every time you wish to run it.
-
-Again, assuming the CWD is the containing directory of the cloned project:
+Again, assuming the CWD is the local project directory, *and* assuming that your
+chosen configuration file is stored alongside the project directory:
 
 ```
-ln -sf "$PWD"/ssh-wp-backup/src/local.py /usr/local/bin/ssh-wp-backup
+./ssh-wp-backup/src/local.py ../mysite-config.ini
 ```
 
-Now, you can run run the utility much more easily:
-
-```
-ssh-wp-backup ./myconfigs/mysite-config.ini
-```
+The utility will display the download progress when copying the file from the
+remote server to your local machine.
 
 ## Support
 
