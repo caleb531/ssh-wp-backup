@@ -64,12 +64,11 @@ properties marked as optional):
 
 - `compressor`: optional; an alternate compressor to use (including command line
 	arguments)
-	- compressor *must* send output to stdout
-	- defaults to `gzip -c` if not compressor is given
+	- defaults to `gzip` if no compressor is given
 	- if you specify this option, you must ensure that the file extensions for
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
-	- *e.g.* `bzip2 -c`
+	- *e.g.* `bzip2`
 - `purge_remote`: optional; a boolean indicating if the remote copy of the
 	backup should be purged after download
 	- valid values include `true`, `false`, `yes`, `no`, `on`, and `off`
