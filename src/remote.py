@@ -15,7 +15,7 @@ def read_wp_config(wordpress_path):
 
 
 # Create intermediate directories in remote backup path if necessary
-def create_directory_structure(remote_backup_path):
+def create_dir_structure(remote_backup_path):
 
     try:
         os.makedirs(os.path.dirname(remote_backup_path))
@@ -65,16 +65,25 @@ def dump_db(db_info, backup_compressor, remote_backup_path):
         compressor.wait()
 
 
+# Verify the integrity of the remote backup by checking its size
+def verify_backup_integrity(remote_backup_path):
+
+    if os.path.getsize(remote_backup_path) < 1024:
+
+        raise OSError('Backup is corrupted (too small). Aborting.')
+
+
 def main():
 
     wordpress_path = sys.argv[1]
     remote_backup_path = sys.argv[2]
     backup_compressor = sys.argv[3]
 
-    create_directory_structure(remote_backup_path)
+    create_dir_structure(remote_backup_path)
 
     db_info = get_db_info(wordpress_path)
     dump_db(db_info, backup_compressor, remote_backup_path)
+    verify_backup_integrity(remote_backup_path)
 
 if __name__ == '__main__':
     main()

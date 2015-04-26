@@ -24,7 +24,7 @@ def parse_config(config_paths):
 
 
 # Create intermediate directories in local backup path if necessary
-def create_directory_structure(config):
+def create_dir_structure(config):
 
     try:
         os.makedirs(os.path.dirname(os.path.expanduser(
@@ -55,6 +55,10 @@ def create_remote_backup(config):
 
         # Wait for remote backup to be created
         ssh.wait()
+
+        # If remote backup script encountered an exception
+        if ssh.returncode != 0:
+            sys.exit(ssh.returncode)
 
 
 # Download remote backup to local system
@@ -118,7 +122,7 @@ def main():
 
     config.set('paths', 'local_backup', os.path.expanduser(
         config.get('paths', 'local_backup')))
-    create_directory_structure(config)
+    create_dir_structure(config)
 
     create_remote_backup(config)
     download_remote_backup(config)
