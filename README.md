@@ -80,8 +80,8 @@ properties marked as optional):
 		`paths.local_backup`
 	- if option is omitted, all local backups are kept
 
-Please see the included [example.ini](example.ini) file for an example
-configuration.
+Please see the included [example.ini](src/config/example.ini) file for an
+example configuration.
 
 ### Adding a command alias
 

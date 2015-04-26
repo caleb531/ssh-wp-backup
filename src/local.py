@@ -116,7 +116,7 @@ def purge_oldest_backups(config):
 
 def main():
 
-    default_config_path = os.path.join(program_dir, 'defaults.ini')
+    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
     config_path = sys.argv[1]
     config = parse_config([default_config_path, config_path])
 
