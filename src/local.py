@@ -17,7 +17,7 @@ program_dir = os.path.dirname(os.path.realpath(__file__))
 # Parse configuration files at given paths into dictionary
 def parse_config(config_paths):
 
-    config = ConfigParser.ConfigParser()
+    config = ConfigParser.RawConfigParser()
     config.read(config_paths)
 
     return config
