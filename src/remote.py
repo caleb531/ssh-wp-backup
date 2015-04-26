@@ -69,7 +69,6 @@ def dump_db(db_info, backup_compressor, remote_backup_path):
 def verify_backup_integrity(remote_backup_path):
 
     if os.path.getsize(remote_backup_path) < 1024:
-
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
