@@ -28,7 +28,7 @@ def create_directory_structure(config):
 
     try:
         os.makedirs(os.path.dirname(os.path.expanduser(
-            config.get('paths', 'local_backup'))))
+            time.strftime(config.get('paths', 'local_backup')))))
     except OSError:
         pass
 
