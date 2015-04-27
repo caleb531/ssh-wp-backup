@@ -62,8 +62,8 @@ properties marked as optional):
 
 #### [backup]
 
-- `compressor`: optional; an alternate compressor to use (including command line
-	arguments)
+- `compressor`: optional; an alternate compressor to use for compressing the
+	database backup on the server (may include command line arguments)
 	- defaults to `gzip` if no compressor is given
 	- if you specify this option, you must ensure that the file extensions for
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
@@ -71,13 +71,15 @@ properties marked as optional):
 	- *e.g.* `bzip2`
 - `purge_remote`: optional; a boolean indicating if the remote copy of the
 	backup should be purged after download
-	- valid values include `true`, `false`, `yes`, `no`, `on`, and `off`
+	- valid values include `yes`, `no`, `on`, `off`, `true`, `false`, `1`, and
+		`0`
 	- default value is `no`
 - `max_local_backups`: optional; the maximum number of local backups to keep
 	- as new local backups are created, old backups are purged to keep within
 		the limit
 	- this option only applies if you use date format sequences in
-		`paths.local_backup`
+		`paths.local_backup` (the only case in which multiple backups for the
+			same site would exist)
 	- if option is omitted, all local backups are kept
 
 Please see the included [example.ini](src/config/example.ini) file for an
