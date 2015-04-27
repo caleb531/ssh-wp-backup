@@ -32,6 +32,26 @@ def create_dir_structure(path):
         pass
 
 
+# Connect to remote via SSH and execute remote script
+def exec_cmd_via_ssh(user, hostname, port, cmd, cmd_args, **streams):
+
+    # Construct Popen args by combining both lists of command arguments
+    ssh_args = [
+        'ssh',
+        '-p {port}'.format(port=port),
+        '{user}@{hostname}'.format(
+            user=user,
+            hostname=hostname),
+        cmd
+    ] + list(cmd_args)
+
+    ssh = subprocess.Popen(ssh_args, **streams)
+    # Wait for command to finish execution
+    ssh.wait()
+
+    return ssh
+
+
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
                          remote_backup_path, backup_compressor):
@@ -39,24 +59,11 @@ def create_remote_backup(user, hostname, port, wordpress_path,
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        # Connect to remote via SSH and execute remote script
-        ssh = subprocess.Popen([
-            'ssh',
-            '-p {port}'.format(port=port),
-            '{user}@{hostname}'.format(
-                user=user,
-                hostname=hostname),
-            # Execute script passed to stdin with the following arguments
-            'python -',
-            wordpress_path,
-            remote_backup_path,
-            backup_compressor
-        ], stdin=remote_script)
+        script_args = [wordpress_path, remote_backup_path, backup_compressor]
+        ssh = exec_cmd_via_ssh(user, hostname, port, 'python -', script_args,
+                               stdin=remote_script)
 
-        # Wait for remote backup to be created
-        ssh.wait()
-
-        # If remote backup script encountered an exception
+        # Exit script if remote backup script encountered an exception
         if ssh.returncode != 0:
             sys.exit(ssh.returncode)
 
@@ -84,18 +91,8 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
 # Forcefully remove backup from remote
 def purge_remote_backup(user, hostname, port, remote_backup_path):
 
-    ssh = subprocess.Popen([
-        'ssh',
-        '-p {port}'.format(port=port),
-        '{user}@{hostname}'.format(
-            user=user,
-            hostname=hostname),
-        'rm -f',
-        remote_backup_path
-    ])
-
-    # Wait for backup to be removed from remote
-    ssh.wait()
+    exec_cmd_via_ssh(user, hostname, port, 'rm -f',
+                     cmd_args=[remote_backup_path])
 
 
 # Purge oldest backups to keep number of backups within specified limit
