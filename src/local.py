@@ -126,11 +126,12 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 # Run backup script on remote
 def back_up(config):
 
-    # Expand date format sequences in both backup paths
-    # Also expand home directory for local backup path
-    expanded_local_backup_path = os.path.expanduser(time.strftime(
+    # Expand home directory for local backup path
+    config.set('paths', 'local_backup', os.path.expanduser(
         config.get('paths', 'local_backup')))
-    # Home directory in remote backup path will be expanded by remote script
+    # Expand date format sequences in both backup paths
+    expanded_local_backup_path = time.strftime(
+        config.get('paths', 'local_backup'))
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
 
