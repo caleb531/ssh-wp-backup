@@ -57,7 +57,7 @@ def get_db_info(wordpress_path):
 
 
 # Dump MySQL database to compressed file on remote
-def dump_db(db_info, backup_compressor, remote_backup_path):
+def dump_db(db_info, remote_backup_path):
     pass
     mysqldump = subprocess.Popen([
         'mysqldump',
@@ -71,7 +71,7 @@ def dump_db(db_info, backup_compressor, remote_backup_path):
     # Create remote backup so as to write output of dump/compress to file
     with open(remote_backup_path, 'wb') as remote_backup:
 
-        compressor = subprocess.Popen(backup_compressor.split(' '),
+        compressor = subprocess.Popen('gzip',
                                       stdin=mysqldump.stdout,
                                       stdout=remote_backup)
 
@@ -93,20 +93,20 @@ def purge_backup(backup_path):
     os.remove(backup_path)
 
 
-def back_up(wordpress_path, backup_path, backup_compressor):
+def back_up(wordpress_path, backup_path):
 
     backup_path = os.path.expanduser(backup_path)
 
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info, backup_compressor, backup_path)
+    dump_db(db_info, backup_path)
     verify_backup_integrity(backup_path)
 
 
-def restore(wordpress_path, backup_path, backup_decompressor):
+def restore(wordpress_path):
 
-    pass
+    db_info = get_db_info(wordpress_path)
 
 
 def main():

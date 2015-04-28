@@ -3,6 +3,7 @@
 import argparse
 import ConfigParser
 import glob
+import gzip
 import os
 import os.path
 import re
@@ -76,12 +77,11 @@ def exec_on_remote(user, hostname, port, action, action_args, **streams):
 
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
-                         remote_backup_path, backup_compressor):
+                         remote_backup_path):
 
     exec_on_remote(user, hostname, port, 'back-up', [
         wordpress_path,
-        remote_backup_path,
-        backup_compressor
+        remote_backup_path
     ])
 
 
@@ -140,8 +140,7 @@ def back_up(config):
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
                          config.get('paths', 'wordpress'),
-                         config.get('paths', 'remote_backup'),
-                         config.get('backup', 'compressor'))
+                         config.get('paths', 'remote_backup'))
 
     download_remote_backup(config.get('ssh', 'user'),
                            config.get('ssh', 'hostname'),
@@ -161,25 +160,31 @@ def back_up(config):
                              config.getint('backup', 'max_local_backups'))
 
 
+# Decompress the given backup file and return database contents
+def get_db_contents(backup_path):
+
+    with gzip.open(backup_path, 'rb') as gzip_file:
+        db_contents = gzip_file.read()
+
+    return db_contents
+
+
 # Run restore script on remote
 def restore(config, backup_path):
 
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'restore.py')) as restore_script:
 
+        db_contents = get_db_contents(os.path.expanduser(backup_path))
+
         action_args = [
-            config.get('paths', 'wordpress'),
-            config.get('paths', 'remote_backup'),
-            config.get('backup', 'decompressor')
+            config.get('paths', 'wordpress')
         ]
         ssh = exec_on_remote(config.get('ssh', 'user'),
                              config.get('ssh', 'hostname'),
                              config.get('ssh', 'port'),
                              'restore', action_args,
                              stdin=restore_script)
-
-        if ssh.returncode != 0:
-            sys.exit(ssh.returncode)
 
 
 def main():
