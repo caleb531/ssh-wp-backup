@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import re
 import os
+import re
 import subprocess
 import sys
 
@@ -75,7 +75,7 @@ def verify_backup_integrity(remote_backup_path):
 def main():
 
     wordpress_path = sys.argv[1]
-    remote_backup_path = sys.argv[2]
+    remote_backup_path = os.path.expanduser(sys.argv[2])
     backup_compressor = sys.argv[3]
 
     create_dir_structure(remote_backup_path)

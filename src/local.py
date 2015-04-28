@@ -116,29 +116,34 @@ def main():
     config_path = sys.argv[1]
     config = parse_config([default_config_path, config_path])
 
-    config.set('paths', 'local_backup', os.path.expanduser(
+    # Expand date format sequences in both backup paths
+    # Also expand home directory for local backup path
+    expanded_local_backup_path = os.path.expanduser(time.strftime(
         config.get('paths', 'local_backup')))
-    create_dir_structure(time.strftime(config.get('paths', 'local_backup')))
+    # Home directory in remote backup path will be expanded by remote script
+    expanded_remote_backup_path = time.strftime(
+        config.get('paths', 'remote_backup'))
+
+    create_dir_structure(expanded_local_backup_path)
 
     create_remote_backup(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
                          config.get('paths', 'wordpress'),
-                         time.strftime(config.get('paths', 'remote_backup')),
+                         config.get('paths', 'remote_backup'),
                          config.get('backup', 'compressor'))
 
     download_remote_backup(config.get('ssh', 'user'),
                            config.get('ssh', 'hostname'),
                            config.get('ssh', 'port'),
-                           time.strftime(config.get('paths', 'remote_backup')),
-                           time.strftime(config.get('paths', 'local_backup')))
+                           expanded_remote_backup_path,
+                           expanded_local_backup_path)
 
     if config.getboolean('backup', 'purge_remote'):
         purge_remote_backup(config.get('ssh', 'user'),
                             config.get('ssh', 'hostname'),
                             config.get('ssh', 'port'),
-                            time.strftime(config.get('paths',
-                                                     'remote_backup')))
+                            expanded_remote_backup_path)
 
     if config.has_option('backup', 'max_local_backups') and not os.path.isdir(
        config.get('paths', 'local_backup')):
