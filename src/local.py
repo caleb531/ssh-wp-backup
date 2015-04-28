@@ -3,7 +3,6 @@
 import argparse
 import ConfigParser
 import glob
-import gzip
 import os
 import os.path
 import re
@@ -149,11 +148,10 @@ def back_up(config):
                            expanded_remote_backup_path,
                            expanded_local_backup_path)
 
-    if config.getboolean('backup', 'purge_remote'):
-        purge_remote_backup(config.get('ssh', 'user'),
-                            config.get('ssh', 'hostname'),
-                            config.get('ssh', 'port'),
-                            expanded_remote_backup_path)
+    purge_remote_backup(config.get('ssh', 'user'),
+                        config.get('ssh', 'hostname'),
+                        config.get('ssh', 'port'),
+                        expanded_remote_backup_path)
 
     if config.has_option('backup', 'max_local_backups') and not os.path.isdir(
        config.get('paths', 'local_backup')):
@@ -161,25 +159,26 @@ def back_up(config):
                              config.getint('backup', 'max_local_backups'))
 
 
-# Decompress the given backup file and return database contents
-def get_db_contents(backup_path):
-
-    with gzip.open(backup_path, 'rb') as gzip_file:
-        db_contents = gzip_file.read()
-
-    return db_contents
-
-
-# Run restore script on remote
-def restore(config, backup_path):
+# Restore the chosen database revision to the Wordpress install on remote
+def restore(config, local_backup_path):
 
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'restore.py')) as restore_script:
 
-        db_contents = get_db_contents(os.path.expanduser(backup_path))
+        scp = subprocess.Popen([
+            'scp',
+            '-P {}'.format(config.get('ssh', 'port')),
+            local_backup_path,
+            '{}@{}:{}'.format(
+                config.get('ssh', 'user'),
+                config.get('ssh', 'hostname'),
+                config.get('paths', 'remote_backup'))
+        ])
+        scp.wait()
 
         action_args = [
-            config.get('paths', 'wordpress')
+            config.get('paths', 'wordpress'),
+            config.get('paths', 'remote_backup')
         ]
         ssh = exec_on_remote(config.get('ssh', 'user'),
                              config.get('ssh', 'hostname'),

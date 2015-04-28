@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import gzip
 import os
 import re
 import subprocess
@@ -104,9 +105,27 @@ def back_up(wordpress_path, backup_path):
     verify_backup_integrity(backup_path)
 
 
-def restore(wordpress_path):
+# Decompress the given backup file and return database contents
+def get_db_contents(backup_path):
+
+    try:
+        gzip_file = gzip.open(backup_path, 'rb')
+        db_contents = gzip_file.read()
+    finally:
+        gzip_file.close()
+
+    return db_contents
+
+
+# Restore WordPress database using the given remote backup
+def restore(wordpress_path, backup_path):
+
+    backup_path = os.path.expanduser(backup_path)
 
     db_info = get_db_info(wordpress_path)
+    db_contents = get_db_contents(backup_path)
+
+    os.remove(backup_path)
 
 
 def main():
