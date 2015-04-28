@@ -72,7 +72,7 @@ def verify_backup_integrity(remote_backup_path):
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
-def main():
+def back_up():
 
     wordpress_path = sys.argv[1]
     remote_backup_path = os.path.expanduser(sys.argv[2])
@@ -83,6 +83,11 @@ def main():
     db_info = get_db_info(wordpress_path)
     dump_db(db_info, backup_compressor, remote_backup_path)
     verify_backup_integrity(remote_backup_path)
+
+
+def main():
+
+    back_up()
 
 if __name__ == '__main__':
     main()

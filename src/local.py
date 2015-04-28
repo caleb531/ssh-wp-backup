@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import ConfigParser
 import glob
 import os
@@ -14,7 +15,25 @@ import time
 program_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-# Parse configuration files at given paths into dictionary
+# Parse command line arguments to the utility
+def parse_cli_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        'config_path',
+        help='the path to a configuration file (.ini)')
+
+    parser.add_argument(
+        '--restore',
+        '-r',
+        help='the path to a compressed backup file from which to restore')
+
+    cli_args = parser.parse_args()
+    return cli_args
+
+
+# Parse configuration files at given paths into object
 def parse_config(config_paths):
 
     config = ConfigParser.RawConfigParser()
@@ -63,7 +82,6 @@ def create_remote_backup(user, hostname, port, wordpress_path,
         ssh = exec_cmd_via_ssh(user, hostname, port, 'python -', script_args,
                                stdin=remote_script)
 
-        # Exit script if remote backup script encountered an exception
         if ssh.returncode != 0:
             sys.exit(ssh.returncode)
 
@@ -110,11 +128,8 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
         os.remove(backup)
 
 
-def main():
-
-    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
-    config_path = sys.argv[1]
-    config = parse_config([default_config_path, config_path])
+# Run backup script on remote
+def back_up(config):
 
     # Expand date format sequences in both backup paths
     # Also expand home directory for local backup path
@@ -149,6 +164,40 @@ def main():
        config.get('paths', 'local_backup')):
         purge_oldest_backups(config.get('paths', 'local_backup'),
                              config.getint('backup', 'max_local_backups'))
+
+
+# Run restore script on remote
+def restore(config, backup_path):
+
+    # Read remote script so as to pass contents to SSH session
+    with open(os.path.join(program_dir, 'restore.py')) as restore_script:
+
+        script_args = [
+            config.get('paths', 'wordpress')
+            config.get('paths', 'remote_backup')
+            config.get('backup', 'decompressor')
+        ]
+        ssh = exec_cmd_via_ssh(config.get('ssh', 'user'),
+                               config.get('ssh', 'hostname'),
+                               config.get('ssh', 'port'),
+                               'python -', script_args, stdin=restore_script)
+
+        if ssh.returncode != 0:
+            sys.exit(ssh.returncode)
+
+
+def main():
+
+    cli_args = parse_cli_args()
+
+    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
+    config_path = cli_args.config_path
+    config = parse_config([default_config_path, config_path])
+
+    if 'restore' in cli_args:
+        restore(config, cli_args.restore)
+    else:
+        back_up(config)
 
 if __name__ == '__main__':
     main()
