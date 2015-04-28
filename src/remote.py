@@ -1,9 +1,24 @@
 #!/usr/bin/env python
 
+import argparse
 import os
 import re
 import subprocess
 import sys
+
+
+# Parse command line arguments passed to the remote driver
+def parse_cli_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--back-up', action='store_true')
+    parser.add_argument('--restore', action='store_true')
+    parser.add_argument('--purge-backup', action='store_true')
+    parser.add_argument('action_args', nargs='*')
+
+    cli_args = parser.parse_args()
+    return cli_args
 
 
 # Read contents of wp-config.php for a WordPress installation
@@ -65,29 +80,45 @@ def dump_db(db_info, backup_compressor, remote_backup_path):
         compressor.wait()
 
 
-# Verify the integrity of the remote backup by checking its size
+# Verify integrity of remote backup by checking its size
 def verify_backup_integrity(remote_backup_path):
 
     if os.path.getsize(remote_backup_path) < 1024:
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
-def back_up():
+# Purge remote backup (this is only run after download)
+def purge_backup(backup_path):
 
-    wordpress_path = sys.argv[1]
-    remote_backup_path = os.path.expanduser(sys.argv[2])
-    backup_compressor = sys.argv[3]
+    os.remove(backup_path)
 
-    create_dir_structure(remote_backup_path)
+
+def back_up(wordpress_path, backup_path, backup_compressor):
+
+    backup_path = os.path.expanduser(backup_path)
+
+    create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info, backup_compressor, remote_backup_path)
-    verify_backup_integrity(remote_backup_path)
+    dump_db(db_info, backup_compressor, backup_path)
+    verify_backup_integrity(backup_path)
+
+
+def restore(wordpress_path, backup_path, backup_decompressor):
+
+    pass
 
 
 def main():
 
-    back_up()
+    cli_args = parse_cli_args()
+
+    if cli_args.back_up:
+        back_up(*cli_args.action_args)
+    elif cli_args.restore:
+        restore(*cli_args.action_args)
+    elif cli_args.purge_backup:
+        purge_backup(*cli_args.action_args)
 
 if __name__ == '__main__':
     main()

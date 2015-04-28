@@ -15,7 +15,7 @@ import time
 program_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-# Parse command line arguments to the utility
+# Parse command line arguments passed to the local driver
 def parse_cli_args():
 
     parser = argparse.ArgumentParser()
@@ -52,38 +52,37 @@ def create_dir_structure(path):
 
 
 # Connect to remote via SSH and execute remote script
-def exec_cmd_via_ssh(user, hostname, port, cmd, cmd_args, **streams):
+def exec_on_remote(user, hostname, port, action, action_args, **streams):
 
-    # Construct Popen args by combining both lists of command arguments
-    ssh_args = [
-        'ssh',
-        '-p {port}'.format(port=port),
-        '{user}@{hostname}'.format(
-            user=user,
-            hostname=hostname),
-        cmd
-    ] + list(cmd_args)
+    # Read remote script so as to pass contents to SSH session
+    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-    ssh = subprocess.Popen(ssh_args, **streams)
-    # Wait for command to finish execution
-    ssh.wait()
+        # Construct Popen args by combining both lists of command arguments
+        ssh_args = [
+            'ssh',
+            '-p {}'.format(port),
+            '{}@{}'.format(user, hostname),
+            'python -',
+            '--{}'.format(action)  # The action to run on remote
+        ] + action_args
 
-    return ssh
+        ssh = subprocess.Popen(ssh_args, stdin=remote_script)
+        # Wait for command to finish execution
+        ssh.wait()
+
+        if ssh.returncode != 0:
+            sys.exit(ssh.returncode)
 
 
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
                          remote_backup_path, backup_compressor):
 
-    # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
-
-        script_args = [wordpress_path, remote_backup_path, backup_compressor]
-        ssh = exec_cmd_via_ssh(user, hostname, port, 'python -', script_args,
-                               stdin=remote_script)
-
-        if ssh.returncode != 0:
-            sys.exit(ssh.returncode)
+    exec_on_remote(user, hostname, port, 'back-up', [
+        wordpress_path,
+        remote_backup_path,
+        backup_compressor
+    ])
 
 
 # Download remote backup to local system
@@ -94,11 +93,8 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
     # Send download progress to stdout
     scp = subprocess.Popen([
         'scp',
-        '-P {port}'.format(port=port),
-        '{user}@{hostname}:{remote_path}'.format(
-            user=user,
-            hostname=hostname,
-            remote_path=remote_backup_path),
+        '-P {}'.format(port),
+        '{}@{}:{}'.format(user, hostname, remote_backup_path),
         local_backup_path
     ])
 
@@ -109,8 +105,7 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
 # Forcefully remove backup from remote
 def purge_remote_backup(user, hostname, port, remote_backup_path):
 
-    exec_cmd_via_ssh(user, hostname, port, 'rm -f',
-                     cmd_args=[remote_backup_path])
+    exec_on_remote(user, hostname, port, 'purge-backup', [remote_backup_path])
 
 
 # Purge oldest backups to keep number of backups within specified limit
@@ -172,15 +167,16 @@ def restore(config, backup_path):
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'restore.py')) as restore_script:
 
-        script_args = [
-            config.get('paths', 'wordpress')
-            config.get('paths', 'remote_backup')
+        action_args = [
+            config.get('paths', 'wordpress'),
+            config.get('paths', 'remote_backup'),
             config.get('backup', 'decompressor')
         ]
-        ssh = exec_cmd_via_ssh(config.get('ssh', 'user'),
-                               config.get('ssh', 'hostname'),
-                               config.get('ssh', 'port'),
-                               'python -', script_args, stdin=restore_script)
+        ssh = exec_on_remote(config.get('ssh', 'user'),
+                             config.get('ssh', 'hostname'),
+                             config.get('ssh', 'port'),
+                             'restore', action_args,
+                             stdin=restore_script)
 
         if ssh.returncode != 0:
             sys.exit(ssh.returncode)
@@ -194,7 +190,7 @@ def main():
     config_path = cli_args.config_path
     config = parse_config([default_config_path, config_path])
 
-    if 'restore' in cli_args:
+    if cli_args.restore:
         restore(config, cli_args.restore)
     else:
         back_up(config)
