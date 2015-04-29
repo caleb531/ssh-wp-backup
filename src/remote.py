@@ -1,24 +1,10 @@
 #!/usr/bin/env python
 
-import argparse
 import os
 import re
+import shlex
 import subprocess
 import sys
-
-
-# Parse command line arguments passed to the remote driver
-def parse_cli_args():
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--back-up', action='store_true')
-    parser.add_argument('--restore', action='store_true')
-    parser.add_argument('--purge-backup', action='store_true')
-    parser.add_argument('action_args', nargs='*')
-
-    cli_args = parser.parse_args()
-    return cli_args
 
 
 # Read contents of wp-config.php for a WordPress installation
@@ -30,10 +16,10 @@ def read_wp_config(wordpress_path):
 
 
 # Create intermediate directories in remote backup path if necessary
-def create_dir_structure(remote_backup_path):
+def create_dir_structure(backup_path):
 
     try:
-        os.makedirs(os.path.dirname(remote_backup_path))
+        os.makedirs(os.path.dirname(backup_path))
     except OSError:
         pass
 
@@ -57,7 +43,7 @@ def get_db_info(wordpress_path):
 
 
 # Dump MySQL database to compressed file on remote
-def dump_db(db_info, remote_backup_path):
+def dump_db(db_info, backup_compressor, backup_path):
 
     mysqldump = subprocess.Popen([
         'mysqldump',
@@ -69,11 +55,11 @@ def dump_db(db_info, remote_backup_path):
     ], stdout=subprocess.PIPE)
 
     # Create remote backup so as to write output of dump/compress to file
-    with open(remote_backup_path, 'wb') as remote_backup:
+    with open(backup_path, 'wb') as backup_file:
 
-        compressor = subprocess.Popen('gzip',
+        compressor = subprocess.Popen(shlex.split(backup_compressor),
                                       stdin=mysqldump.stdout,
-                                      stdout=remote_backup)
+                                      stdout=backup_file)
 
         # Wait for remote to dump and compress database
         mysqldump.wait()
@@ -81,9 +67,9 @@ def dump_db(db_info, remote_backup_path):
 
 
 # Verify integrity of remote backup by checking its size
-def verify_backup_integrity(remote_backup_path):
+def verify_backup_integrity(backup_path):
 
-    if os.path.getsize(remote_backup_path) < 1024:
+    if os.path.getsize(backup_path) < 1024:
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
@@ -93,40 +79,39 @@ def purge_backup(backup_path):
     os.remove(backup_path)
 
 
-def back_up(wordpress_path, backup_path):
+def back_up(wordpress_path, backup_compressor, backup_path):
 
     backup_path = os.path.expanduser(backup_path)
 
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info, backup_path)
+    dump_db(db_info, backup_compressor, backup_path)
     verify_backup_integrity(backup_path)
 
 
 # Decompress the given backup file and return database contents
-def decompress_backup(backup_path):
+def decompress_backup(backup_path, backup_decompressor):
 
-    gzip = subprocess.Popen([
-        'gzip',
-        '-d',
-        backup_path
-    ])
-    gzip.wait()
+    compressor = subprocess.Popen(shlex.split(backup_decompressor) +
+                                  [backup_path])
+    compressor.wait()
 
 
 # Restore WordPress database using the given remote backup
-def restore(wordpress_path, backup_path):
+def restore(wordpress_path, backup_path, backup_decompressor):
 
     backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
-    decompress_backup(backup_path)
+    decompress_backup(backup_path, backup_decompressor)
 
     db_info = get_db_info(wordpress_path)
-    db_path = backup_path.replace('.gz', '')
+    # Construct path to decompressed database file from given backup file
+    db_path = re.sub('\.([A-Za-z0-9]+)$', '', backup_path)
 
     with open(db_path, 'r') as db_file:
 
+        # Execute SQL script on the respective database
         mysql = subprocess.Popen([
             'mysql',
             db_info['name'],
@@ -137,7 +122,9 @@ def restore(wordpress_path, backup_path):
 
         mysql.wait()
 
+    # Decompressed database file should always exist at this point
     os.remove(db_path)
+    # Backup path may or may not be removed automatically by decompressor
     try:
         os.remove(backup_path)
     except OSError:
@@ -146,14 +133,15 @@ def restore(wordpress_path, backup_path):
 
 def main():
 
-    cli_args = parse_cli_args()
+    # First argument (at index 0) will always be a dash (-)
+    action = sys.argv[1]
 
-    if cli_args.back_up:
-        back_up(*cli_args.action_args)
-    elif cli_args.restore:
-        restore(*cli_args.action_args)
-    elif cli_args.purge_backup:
-        purge_backup(*cli_args.action_args)
+    if action == 'back-up':
+        back_up(*sys.argv[2:])
+    elif action == 'restore':
+        restore(*sys.argv[2:])
+    elif action == 'purge-backup':
+        purge_backup(*sys.argv[2:])
 
 if __name__ == '__main__':
     main()

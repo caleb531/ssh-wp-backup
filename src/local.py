@@ -51,19 +51,28 @@ def create_dir_structure(path):
         pass
 
 
+# Escape each space in string with backslash
+def escape_spaces(string):
+
+    return string.replace(' ', '\\ ')
+
+
 # Connect to remote via SSH and execute remote script
 def exec_on_remote(user, hostname, port, action, action_args, **streams):
 
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
+        action_args = map(escape_spaces, action_args)
+
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
             'ssh',
             '-p {0}'.format(port),
             '{0}@{1}'.format(user, hostname),
-            'python -',
-            '--{0}'.format(action)  # The action to run on remote
+            'python',
+            '-',
+            action  # The action to run on remote
         ] + action_args
 
         ssh = subprocess.Popen(ssh_args, stdin=remote_script)
@@ -76,10 +85,11 @@ def exec_on_remote(user, hostname, port, action, action_args, **streams):
 
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
-                         remote_backup_path):
+                         remote_backup_path, backup_compressor):
 
     exec_on_remote(user, hostname, port, 'back-up', [
         wordpress_path,
+        backup_compressor,
         remote_backup_path
     ])
 
@@ -140,7 +150,8 @@ def back_up(config):
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
                          config.get('paths', 'wordpress'),
-                         config.get('paths', 'remote_backup'))
+                         config.get('paths', 'remote_backup'),
+                         config.get('backup', 'compressor'))
 
     download_remote_backup(config.get('ssh', 'user'),
                            config.get('ssh', 'hostname'),
@@ -175,7 +186,8 @@ def restore(config, local_backup_path):
 
     action_args = [
         config.get('paths', 'wordpress'),
-        config.get('paths', 'remote_backup')
+        config.get('paths', 'remote_backup'),
+        config.get('backup', 'decompressor')
     ]
     ssh = exec_on_remote(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
