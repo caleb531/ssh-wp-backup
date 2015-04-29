@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-import gzip
 import os
 import re
 import subprocess
@@ -59,13 +58,13 @@ def get_db_info(wordpress_path):
 
 # Dump MySQL database to compressed file on remote
 def dump_db(db_info, remote_backup_path):
-    pass
+
     mysqldump = subprocess.Popen([
         'mysqldump',
         db_info['name'],
         '-h', db_info['host'],
         '-u', db_info['user'],
-        '-p{password}'.format(password=db_info['password']),
+        '-p{0}'.format(db_info['password']),
         '--add-drop-table'
     ], stdout=subprocess.PIPE)
 
@@ -106,26 +105,43 @@ def back_up(wordpress_path, backup_path):
 
 
 # Decompress the given backup file and return database contents
-def get_db_contents(backup_path):
+def decompress_backup(backup_path):
 
-    try:
-        gzip_file = gzip.open(backup_path, 'rb')
-        db_contents = gzip_file.read()
-    finally:
-        gzip_file.close()
-
-    return db_contents
+    gzip = subprocess.Popen([
+        'gzip',
+        '-d',
+        backup_path
+    ])
+    gzip.wait()
 
 
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path):
 
     backup_path = os.path.expanduser(backup_path)
+    verify_backup_integrity(backup_path)
+    decompress_backup(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    db_contents = get_db_contents(backup_path)
+    db_path = backup_path.replace('.gz', '')
 
-    os.remove(backup_path)
+    with open(db_path, 'r') as db_file:
+
+        mysql = subprocess.Popen([
+            'mysql',
+            db_info['name'],
+            '-h', db_info['host'],
+            '-u', db_info['user'],
+            '-p{0}'.format(db_info['password']),
+        ], stdin=db_file)
+
+        mysql.wait()
+
+    os.remove(db_path)
+    try:
+        os.remove(backup_path)
+    except OSError:
+        pass
 
 
 def main():

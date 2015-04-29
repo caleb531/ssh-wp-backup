@@ -60,10 +60,10 @@ def exec_on_remote(user, hostname, port, action, action_args, **streams):
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
             'ssh',
-            '-p {}'.format(port),
-            '{}@{}'.format(user, hostname),
+            '-p {0}'.format(port),
+            '{0}@{1}'.format(user, hostname),
             'python -',
-            '--{}'.format(action)  # The action to run on remote
+            '--{0}'.format(action)  # The action to run on remote
         ] + action_args
 
         ssh = subprocess.Popen(ssh_args, stdin=remote_script)
@@ -92,8 +92,8 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
     # Send download progress to stdout
     scp = subprocess.Popen([
         'scp',
-        '-P {}'.format(port),
-        '{}@{}:{}'.format(user, hostname, remote_backup_path),
+        '-P {0}'.format(port),
+        '{0}@{1}:{2}'.format(user, hostname, remote_backup_path),
         local_backup_path
     ])
 
@@ -162,29 +162,25 @@ def back_up(config):
 # Restore the chosen database revision to the Wordpress install on remote
 def restore(config, local_backup_path):
 
-    # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'restore.py')) as restore_script:
+    scp = subprocess.Popen([
+        'scp',
+        '-P {0}'.format(config.get('ssh', 'port')),
+        local_backup_path,
+        '{0}@{1}:{2}'.format(
+            config.get('ssh', 'user'),
+            config.get('ssh', 'hostname'),
+            config.get('paths', 'remote_backup'))
+    ])
+    scp.wait()
 
-        scp = subprocess.Popen([
-            'scp',
-            '-P {}'.format(config.get('ssh', 'port')),
-            local_backup_path,
-            '{}@{}:{}'.format(
-                config.get('ssh', 'user'),
-                config.get('ssh', 'hostname'),
-                config.get('paths', 'remote_backup'))
-        ])
-        scp.wait()
-
-        action_args = [
-            config.get('paths', 'wordpress'),
-            config.get('paths', 'remote_backup')
-        ]
-        ssh = exec_on_remote(config.get('ssh', 'user'),
-                             config.get('ssh', 'hostname'),
-                             config.get('ssh', 'port'),
-                             'restore', action_args,
-                             stdin=restore_script)
+    action_args = [
+        config.get('paths', 'wordpress'),
+        config.get('paths', 'remote_backup')
+    ]
+    ssh = exec_on_remote(config.get('ssh', 'user'),
+                         config.get('ssh', 'hostname'),
+                         config.get('ssh', 'port'),
+                         'restore', action_args)
 
 
 def main():
@@ -196,6 +192,11 @@ def main():
     config = parse_config([default_config_path, config_path])
 
     if cli_args.restore:
+        # Prompt user for confirmation before restoring database from backup
+        print 'Backup will overwrite WordPress database'
+        answer = raw_input('Do you want to continue? (y/n) ')
+        if 'y' not in answer.lower():
+            raise Exception('User canceled. Aborting.')
         restore(config, cli_args.restore)
     else:
         back_up(config)

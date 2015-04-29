@@ -18,7 +18,7 @@ This utility assumes that you have (or have access to) the following:
 - A Linux server with support for SSH
 - SSH access to said server
 - A WordPress installation on said server
-- The `mysqldump` utility installed on said server
+- The `mysql` and `mysqldump` utilities installed on said server
 
 ### Configuring SSH
 
@@ -69,11 +69,6 @@ properties marked as optional):
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
 	- *e.g.* `bzip2`
-- `purge_remote`: optional; a boolean indicating if the remote copy of the
-	backup should be purged after download
-	- valid values include `yes`, `no`, `on`, `off`, `true`, `false`, `1`, and
-		`0`
-	- default value is `no`
 - `max_local_backups`: optional; the maximum number of local backups to keep
 	- as new local backups are created, old backups are purged to keep within
 		the limit
