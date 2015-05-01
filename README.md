@@ -3,8 +3,8 @@
 *Copyright 2015 Caleb Evans*  
 *Released under the MIT license*
 
-SSH WordPress Backup is a command line utility for creating local backups of a
-remote WordPress database via SSH.
+SSH WordPress Backup is a command line utility for creating and restoring local
+backups of a remote WordPress database via SSH.
 
 Please note that this utility is under active development, and therefore is
 subject to frequent and sudden API changes. Use at your own risk.
@@ -62,13 +62,18 @@ properties marked as optional):
 
 #### [backup]
 
-- `compressor`: optional; an alternate compressor to use for compressing the
-	database backup on the server (may include command line arguments)
-	- defaults to `gzip` if no compressor is given
+- `compressor`: optional; the shell command used for compressing the
+	database backup on the server
+	- defaults to `gzip` if no command is given
 	- if you specify this option, you must ensure that the file extensions for
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
 	- *e.g.* `bzip2`
+- `decompressor`: optional; the shell command used for decompressing the backup
+	when restoring from backup
+	- defaults to `gzip -d` if no command is given
+	- if this option is present, the `compressor` option must also be present (and vice-versa)
+	- *e.g.* `bzip2 -d`
 - `max_local_backups`: optional; the maximum number of local backups to keep
 	- as new local backups are created, old backups are purged to keep within
 		the limit
@@ -94,19 +99,28 @@ ln -sf "$PWD"/src/local.py /usr/local/bin/ssh-wp-backup
 
 ### Running the utility
 
+#### Backing up
+
 Once you have crafted one or more configuration files to your liking, you can
 run the utility by invoking the command `ssh-wp-backup` and providing the path
-to a configuration file.
-
-Again, assuming the CWD is the local project directory, *and* assuming that your
-chosen configuration file is stored alongside the project directory:
+to a configuration file. The utility will then back up the WordPress database
+according to the parameters set in the configuration file.
 
 ```
-./ssh-wp-backup/src/local.py ../mysite-config.ini
+ssh-wp-backup ../mysite-config.ini
 ```
 
 The utility will display the download progress when copying the file from the
 remote server to your local machine.
+
+#### Restoring from backup
+
+To restore a WordPress database to a local backup, specify the `--restore` or
+`-r` option, along with the path to a compressed local backup.
+
+```
+ssh-wp-backup ../mysite-config.ini -r ../mysite-backup.sql.gz
+```
 
 ## Support
 
