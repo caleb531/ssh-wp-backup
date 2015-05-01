@@ -122,6 +122,15 @@ To restore a WordPress database to a local backup, specify the `--restore` or
 ssh-wp-backup ../mysite-config.ini -r ../mysite-backup.sql.gz
 ```
 
+#### Silence output
+
+To silence output from the utility (both *stdout* and *stderr*), use the
+`--quiet` or `-q` option:
+
+```
+ssh-wp-backup -q ../mysite-config.ini
+```
+
 ## Support
 
 If you'd like to submit a bug report or feature request, please [submit an
