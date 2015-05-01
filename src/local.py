@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
-import ConfigParser
+import configparser
 import glob
 import os
 import os.path
@@ -42,7 +42,7 @@ def parse_cli_args():
 # Parse configuration files at given paths into object
 def parse_config(config_paths):
 
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(config_paths)
 
     return config
@@ -69,14 +69,14 @@ def exec_on_remote(user, hostname, port, action, action_args, stdout, stderr):
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        action_args = map(escape_cli_arg, action_args)
+        action_args = list(map(escape_cli_arg, action_args))
 
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
             'ssh',
             '-p {0}'.format(port),
             '{0}@{1}'.format(user, hostname),
-            'python',
+            'python3',
             '-',
             action  # The action to run on remote
         ] + action_args
@@ -207,7 +207,8 @@ def restore(config, local_backup_path, stdout, stderr):
     ssh = exec_on_remote(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
-                         'restore', action_args)
+                         'restore', action_args,
+                         stdout, stderr)
 
 
 def main():
@@ -228,8 +229,8 @@ def main():
 
         if cli_args.restore:
             # Prompt user for confirmation before restoring from backup
-            print 'Backup will overwrite WordPress database'
-            answer = raw_input('Do you want to continue? (y/n) ')
+            print('Backup will overwrite WordPress database')
+            answer = input('Do you want to continue? (y/n) ')
             if 'y' not in answer.lower():
                 raise Exception('User canceled. Aborting.')
             restore(config, cli_args.restore, stdout, stderr)

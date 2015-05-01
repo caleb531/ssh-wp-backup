@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import re
@@ -134,15 +134,15 @@ def restore(wordpress_path, backup_path, backup_decompressor):
 
 def main():
 
-    # First argument (at index 0) will always be a dash (-)
-    action = sys.argv[1]
+    # Parse action to take as well as its respective arguments
+    action, *action_args = sys.argv[1:]
 
     if action == 'back-up':
-        back_up(*sys.argv[2:])
+        back_up(*action_args)
     elif action == 'restore':
-        restore(*sys.argv[2:])
+        restore(*action_args)
     elif action == 'purge-backup':
-        purge_backup(*sys.argv[2:])
+        purge_backup(*action_args)
 
 if __name__ == '__main__':
     main()
