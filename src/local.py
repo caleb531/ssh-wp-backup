@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import ConfigParser
 import glob
 import os
@@ -14,7 +15,25 @@ import time
 program_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-# Parse configuration files at given paths into dictionary
+# Parse command line arguments passed to the local driver
+def parse_cli_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        'config_path',
+        help='the path to a configuration file (.ini)')
+
+    parser.add_argument(
+        '--restore',
+        '-r',
+        help='the path to a compressed backup file from which to restore')
+
+    cli_args = parser.parse_args()
+    return cli_args
+
+
+# Parse configuration files at given paths into object
 def parse_config(config_paths):
 
     config = ConfigParser.RawConfigParser()
@@ -32,40 +51,47 @@ def create_dir_structure(path):
         pass
 
 
+# Escape command line argument (currently only escapes spaces)
+def escape_cli_arg(string):
+
+    return string.replace(' ', '\\ ')
+
+
 # Connect to remote via SSH and execute remote script
-def exec_cmd_via_ssh(user, hostname, port, cmd, cmd_args, **streams):
+def exec_on_remote(user, hostname, port, action, action_args, **streams):
 
-    # Construct Popen args by combining both lists of command arguments
-    ssh_args = [
-        'ssh',
-        '-p {port}'.format(port=port),
-        '{user}@{hostname}'.format(
-            user=user,
-            hostname=hostname),
-        cmd
-    ] + list(cmd_args)
+    # Read remote script so as to pass contents to SSH session
+    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-    ssh = subprocess.Popen(ssh_args, **streams)
-    # Wait for command to finish execution
-    ssh.wait()
+        action_args = map(escape_cli_arg, action_args)
 
-    return ssh
+        # Construct Popen args by combining both lists of command arguments
+        ssh_args = [
+            'ssh',
+            '-p {0}'.format(port),
+            '{0}@{1}'.format(user, hostname),
+            'python',
+            '-',
+            action  # The action to run on remote
+        ] + action_args
+
+        ssh = subprocess.Popen(ssh_args, stdin=remote_script)
+        # Wait for command to finish execution
+        ssh.wait()
+
+        if ssh.returncode != 0:
+            sys.exit(ssh.returncode)
 
 
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
                          remote_backup_path, backup_compressor):
 
-    # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
-
-        script_args = [wordpress_path, remote_backup_path, backup_compressor]
-        ssh = exec_cmd_via_ssh(user, hostname, port, 'python -', script_args,
-                               stdin=remote_script)
-
-        # Exit script if remote backup script encountered an exception
-        if ssh.returncode != 0:
-            sys.exit(ssh.returncode)
+    exec_on_remote(user, hostname, port, 'back-up', [
+        wordpress_path,
+        backup_compressor,
+        remote_backup_path
+    ])
 
 
 # Download remote backup to local system
@@ -76,11 +102,9 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
     # Send download progress to stdout
     scp = subprocess.Popen([
         'scp',
-        '-P {port}'.format(port=port),
-        '{user}@{hostname}:{remote_path}'.format(
-            user=user,
-            hostname=hostname,
-            remote_path=remote_backup_path),
+        '-P {0}'.format(port),
+        '{0}@{1}:{2}'.format(user, hostname,
+                             escape_cli_arg(remote_backup_path)),
         local_backup_path
     ])
 
@@ -91,8 +115,7 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
 # Forcefully remove backup from remote
 def purge_remote_backup(user, hostname, port, remote_backup_path):
 
-    exec_cmd_via_ssh(user, hostname, port, 'rm -f',
-                     cmd_args=[remote_backup_path])
+    exec_on_remote(user, hostname, port, 'purge-backup', [remote_backup_path])
 
 
 # Purge oldest backups to keep number of backups within specified limit
@@ -110,17 +133,15 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
         os.remove(backup)
 
 
-def main():
+# Run backup script on remote
+def back_up(config):
 
-    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
-    config_path = sys.argv[1]
-    config = parse_config([default_config_path, config_path])
-
-    # Expand date format sequences in both backup paths
-    # Also expand home directory for local backup path
-    expanded_local_backup_path = os.path.expanduser(time.strftime(
+    # Expand home directory for local backup path
+    config.set('paths', 'local_backup', os.path.expanduser(
         config.get('paths', 'local_backup')))
-    # Home directory in remote backup path will be expanded by remote script
+    # Expand date format sequences in both backup paths
+    expanded_local_backup_path = time.strftime(
+        config.get('paths', 'local_backup'))
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
 
@@ -139,16 +160,59 @@ def main():
                            expanded_remote_backup_path,
                            expanded_local_backup_path)
 
-    if config.getboolean('backup', 'purge_remote'):
-        purge_remote_backup(config.get('ssh', 'user'),
-                            config.get('ssh', 'hostname'),
-                            config.get('ssh', 'port'),
-                            expanded_remote_backup_path)
+    purge_remote_backup(config.get('ssh', 'user'),
+                        config.get('ssh', 'hostname'),
+                        config.get('ssh', 'port'),
+                        expanded_remote_backup_path)
 
     if config.has_option('backup', 'max_local_backups') and not os.path.isdir(
        config.get('paths', 'local_backup')):
         purge_oldest_backups(config.get('paths', 'local_backup'),
                              config.getint('backup', 'max_local_backups'))
+
+
+# Restore the chosen database revision to the Wordpress install on remote
+def restore(config, local_backup_path):
+
+    scp = subprocess.Popen([
+        'scp',
+        '-P {0}'.format(config.get('ssh', 'port')),
+        local_backup_path,
+        '{0}@{1}:{2}'.format(
+            config.get('ssh', 'user'),
+            config.get('ssh', 'hostname'),
+            escape_cli_arg(config.get('paths', 'remote_backup')))
+    ])
+    scp.wait()
+
+    action_args = [
+        config.get('paths', 'wordpress'),
+        config.get('paths', 'remote_backup'),
+        config.get('backup', 'decompressor')
+    ]
+    ssh = exec_on_remote(config.get('ssh', 'user'),
+                         config.get('ssh', 'hostname'),
+                         config.get('ssh', 'port'),
+                         'restore', action_args)
+
+
+def main():
+
+    cli_args = parse_cli_args()
+
+    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
+    config_path = cli_args.config_path
+    config = parse_config([default_config_path, config_path])
+
+    if cli_args.restore:
+        # Prompt user for confirmation before restoring database from backup
+        print 'Backup will overwrite WordPress database'
+        answer = raw_input('Do you want to continue? (y/n) ')
+        if 'y' not in answer.lower():
+            raise Exception('User canceled. Aborting.')
+        restore(config, cli_args.restore)
+    else:
+        back_up(config)
 
 if __name__ == '__main__':
     main()
