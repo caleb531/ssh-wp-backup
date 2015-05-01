@@ -51,8 +51,8 @@ def create_dir_structure(path):
         pass
 
 
-# Escape each space in string with backslash
-def escape_spaces(string):
+# Escape command line argument (currently only escapes spaces)
+def escape_cli_arg(string):
 
     return string.replace(' ', '\\ ')
 
@@ -63,7 +63,7 @@ def exec_on_remote(user, hostname, port, action, action_args, **streams):
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        action_args = map(escape_spaces, action_args)
+        action_args = map(escape_cli_arg, action_args)
 
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
@@ -103,7 +103,8 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
     scp = subprocess.Popen([
         'scp',
         '-P {0}'.format(port),
-        '{0}@{1}:{2}'.format(user, hostname, remote_backup_path),
+        '{0}@{1}:{2}'.format(user, hostname,
+                             escape_cli_arg(remote_backup_path)),
         local_backup_path
     ])
 
@@ -180,7 +181,7 @@ def restore(config, local_backup_path):
         '{0}@{1}:{2}'.format(
             config.get('ssh', 'user'),
             config.get('ssh', 'hostname'),
-            config.get('paths', 'remote_backup'))
+            escape_cli_arg(config.get('paths', 'remote_backup')))
     ])
     scp.wait()
 

@@ -32,10 +32,10 @@ def get_db_info(wordpress_path):
     db_info = {}
 
     # Find all PHP constant definitions pertaining to database
-    matches = re.finditer('define\(\'(DB_[A-Z]+)\', \'(.*?)\'\)',
+    matches = re.finditer('define\(\'DB_([A-Z]+)\', \'(.*?)\'\)',
                           wp_config_contents)
     for match in matches:
-        key = match.group(1)[3:].lower()
+        key = match.group(1).lower()
         value = match.group(2)
         db_info[key] = value
 
@@ -55,6 +55,7 @@ def dump_db(db_info, backup_compressor, backup_path):
     ], stdout=subprocess.PIPE)
 
     # Create remote backup so as to write output of dump/compress to file
+    # Binary mode (b) does nothing on Unix systems; only needed for Windows
     with open(backup_path, 'wb') as backup_file:
 
         compressor = subprocess.Popen(shlex.split(backup_compressor),
@@ -117,14 +118,14 @@ def restore(wordpress_path, backup_path, backup_decompressor):
             db_info['name'],
             '-h', db_info['host'],
             '-u', db_info['user'],
-            '-p{0}'.format(db_info['password']),
+            '-p{0}'.format(db_info['password'])
         ], stdin=db_file)
 
         mysql.wait()
 
-    # Decompressed database file should always exist at this point
+    # Decompressed backup should always exist at this point
     os.remove(db_path)
-    # Backup path may or may not be removed automatically by decompressor
+    # Compressed backup may or may not be removed automatically by decompressor
     try:
         os.remove(backup_path)
     except OSError:
