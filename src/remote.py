@@ -82,8 +82,6 @@ def purge_backup(backup_path):
 
 def back_up(wordpress_path, backup_compressor, backup_path):
 
-    backup_path = os.path.expanduser(backup_path)
-
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
@@ -102,7 +100,6 @@ def decompress_backup(backup_path, backup_decompressor):
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path, backup_decompressor):
 
-    backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
     decompress_backup(backup_path, backup_decompressor)
 

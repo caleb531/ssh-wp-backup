@@ -6,6 +6,7 @@ import glob
 import os
 import os.path
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -63,25 +64,20 @@ def create_dir_structure(path):
         pass
 
 
-# Escape command line argument (currently only escapes spaces)
-def escape_cli_arg(string):
-
-    return string.replace(' ', '\\ ')
-
-
 # Connect to remote via SSH and execute remote script
-def exec_on_remote(user, hostname, port, action, action_args, stdout, stderr):
+def exec_on_remote(user, hostname, port, action, action_args,
+                   *, stdout, stderr):
 
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        action_args = [escape_cli_arg(arg) for arg in action_args]
+        action_args = [shlex.quote(arg) for arg in action_args]
 
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
             'ssh',
-            '-p {0}'.format(port),
-            '{0}@{1}'.format(user, hostname),
+            '-p {}'.format(port),
+            '{}@{}'.format(user, hostname),
             'python3',
             '-',
             action  # The action to run on remote
@@ -97,6 +93,32 @@ def exec_on_remote(user, hostname, port, action, action_args, stdout, stderr):
             sys.exit(ssh.returncode)
 
 
+# Transfer a file from remote to local (or vice-versa) using SCP
+def transfer_file(user, hostname, port, src_path, dest_path,
+                  *, download=True, upload=False, stdout, stderr):
+
+    if upload:
+        scp_args = [
+            'scp',
+            '-P {}'.format(port),
+            src_path,
+            '{}@{}:{}'.format(user, hostname,
+                              shlex.quote(dest_path))
+        ]
+    elif download:
+        scp_args = [
+            'scp',
+            '-P {}'.format(port),
+            '{}@{}:{}'.format(user, hostname,
+                              shlex.quote(src_path)),
+            dest_path
+        ]
+
+    scp = subprocess.Popen(scp_args, stdout=stdout, stderr=stderr)
+
+    scp.wait()
+
+
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
                          remote_backup_path, backup_compressor,
@@ -106,25 +128,15 @@ def create_remote_backup(user, hostname, port, wordpress_path,
         wordpress_path,
         backup_compressor,
         remote_backup_path
-    ], stdout, stderr)
+    ], stdout=stdout, stderr=stderr)
 
 
 # Download remote backup to local system
 def download_remote_backup(user, hostname, port, remote_backup_path,
                            local_backup_path, stdout, stderr):
 
-    # Download backup to specified path
-    # Send download progress to stdout
-    scp = subprocess.Popen([
-        'scp',
-        '-P {0}'.format(port),
-        '{0}@{1}:{2}'.format(user, hostname,
-                             escape_cli_arg(remote_backup_path)),
-        local_backup_path
-    ], stdout=stdout, stderr=stderr)
-
-    # Wait for local backup to finish downloading
-    scp.wait()
+    transfer_file(user, hostname, port, remote_backup_path, local_backup_path,
+                  download=True, stdout=stdout, stderr=stderr)
 
 
 # Forcefully remove backup from remote
@@ -132,7 +144,7 @@ def purge_remote_backup(user, hostname, port, remote_backup_path,
                         stdout, stderr):
 
     exec_on_remote(user, hostname, port, 'purge-backup', [remote_backup_path],
-                   stdout, stderr)
+                   stdout=stdout, stderr=stderr)
 
 
 # Purge oldest backups to keep number of backups within specified limit
@@ -153,9 +165,6 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 # Run backup script on remote
 def back_up(config, stdout, stderr):
 
-    # Expand home directory for local backup path
-    config.set('paths', 'local_backup', os.path.expanduser(
-        config.get('paths', 'local_backup')))
     # Expand date format sequences in both backup paths
     expanded_local_backup_path = time.strftime(
         config.get('paths', 'local_backup'))
@@ -168,7 +177,7 @@ def back_up(config, stdout, stderr):
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
                          config.get('paths', 'wordpress'),
-                         config.get('paths', 'remote_backup'),
+                         expanded_remote_backup_path,
                          config.get('backup', 'compressor'),
                          stdout, stderr)
 
@@ -194,27 +203,31 @@ def back_up(config, stdout, stderr):
 # Restore the chosen database revision to the Wordpress install on remote
 def restore(config, local_backup_path, stdout, stderr):
 
-    scp = subprocess.Popen([
-        'scp',
-        '-P {0}'.format(config.get('ssh', 'port')),
-        local_backup_path,
-        '{0}@{1}:{2}'.format(
-            config.get('ssh', 'user'),
-            config.get('ssh', 'hostname'),
-            escape_cli_arg(config.get('paths', 'remote_backup')))
-    ], stdout=stdout, stderr=stderr)
-    scp.wait()
+    expanded_remote_backup_path = time.strftime(
+        config.get('paths', 'remote_backup'))
+
+    transfer_file(config.get('ssh', 'user'),
+                  config.get('ssh', 'hostname'),
+                  config.get('ssh', 'port'),
+                  local_backup_path,
+                  expanded_remote_backup_path,
+                  upload=True, stdout=stdout, stderr=stderr)
 
     action_args = [
         config.get('paths', 'wordpress'),
-        config.get('paths', 'remote_backup'),
+        expanded_remote_backup_path,
         config.get('backup', 'decompressor')
     ]
     ssh = exec_on_remote(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
                          'restore', action_args,
-                         stdout, stderr)
+                         stdout=stdout, stderr=stderr)
+
+
+# Replace ~ with . (can be evaluated to home dir within quoted remote path)
+def protect_home_dir_path(path):
+    return re.sub('^~/', './', path)
 
 
 def main():
@@ -224,6 +237,15 @@ def main():
     default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
     config_path = cli_args.config_path
     config = parse_config([default_config_path, config_path])
+
+    # Expand home directory for local backup path
+    config.set('paths', 'local_backup', os.path.expanduser(
+        config.get('paths', 'local_backup')))
+    # Prevent quoting of ~ at start of remote paths before it is expanded
+    config.set('paths', 'wordpress',
+               protect_home_dir_path(config.get('paths', 'wordpress')))
+    config.set('paths', 'remote_backup',
+               protect_home_dir_path(config.get('paths', 'remote_backup')))
 
     # Open /dev/null to redirect stdout/stderr if necessary
     with open(os.devnull, 'wb') as devnull:
