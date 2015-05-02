@@ -35,6 +35,12 @@ def parse_cli_args():
         '-r',
         help='the path to a compressed backup file from which to restore')
 
+    parser.add_argument(
+        '--force',
+        '-f',
+        action='store_true',
+        help='bypasses the confirmation prompt when restoring from backup')
+
     cli_args = parser.parse_args()
     return cli_args
 
@@ -69,7 +75,7 @@ def exec_on_remote(user, hostname, port, action, action_args, stdout, stderr):
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        action_args = list(map(escape_cli_arg, action_args))
+        action_args = [escape_cli_arg(arg) for arg in action_args]
 
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
@@ -229,10 +235,11 @@ def main():
 
         if cli_args.restore:
             # Prompt user for confirmation before restoring from backup
-            print('Backup will overwrite WordPress database')
-            answer = input('Do you want to continue? (y/n) ')
-            if 'y' not in answer.lower():
-                raise Exception('User canceled. Aborting.')
+            if not cli_args.force:
+                print('Backup will overwrite WordPress database')
+                answer = input('Do you want to continue? (y/n) ')
+                if 'y' not in answer.lower():
+                    raise Exception('User canceled. Aborting.')
             restore(config, cli_args.restore, stdout, stderr)
         else:
             back_up(config, stdout, stderr)
