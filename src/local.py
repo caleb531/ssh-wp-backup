@@ -5,6 +5,7 @@ import configparser
 import glob
 import os
 import os.path
+import pipes
 import re
 import shlex
 import subprocess
@@ -64,6 +65,17 @@ def create_dir_structure(path):
         pass
 
 
+# Quote shell arguments in a backwards-compatible manner
+def quote_arg(arg):
+    if hasattr(shlex, 'quote'):
+        # shlex.quote was introduced in v3.3
+        arg = shlex.quote(arg)
+    else:
+        # pipes.quote is deprecated, but use it if shlex.quote is unavailable
+        arg = pipes.quote(arg)
+    return arg
+
+
 # Connect to remote via SSH and execute remote script
 def exec_on_remote(user, hostname, port, action, action_args,
                    *, stdout, stderr):
@@ -71,7 +83,7 @@ def exec_on_remote(user, hostname, port, action, action_args,
     # Read remote script so as to pass contents to SSH session
     with open(os.path.join(program_dir, 'remote.py')) as remote_script:
 
-        action_args = [shlex.quote(arg) for arg in action_args]
+        action_args = [quote_arg(arg) for arg in action_args]
 
         # Construct Popen args by combining both lists of command arguments
         ssh_args = [
@@ -103,14 +115,14 @@ def transfer_file(user, hostname, port, src_path, dest_path,
             '-P {}'.format(port),
             src_path,
             '{}@{}:{}'.format(user, hostname,
-                              shlex.quote(dest_path))
+                              quote_arg(dest_path))
         ]
     elif download:
         scp_args = [
             'scp',
             '-P {}'.format(port),
             '{}@{}:{}'.format(user, hostname,
-                              shlex.quote(src_path)),
+                              quote_arg(src_path)),
             dest_path
         ]
 
