@@ -19,6 +19,8 @@ This utility assumes that you have (or have access to) the following:
 - SSH access to said server
 - A WordPress installation on said server
 - The `mysql` and `mysqldump` utilities installed on said server
+- Python 3 installed on both the local and remote systems
+	- Why? Because [Python 3 is *better*](http://asmeurer.github.io/python3-presentation/slides.html#1)
 
 ### Configuring SSH
 
