@@ -207,7 +207,8 @@ def restore(config, local_backup_path, stdout, stderr):
     ssh = exec_on_remote(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
-                         'restore', action_args)
+                         'restore', action_args,
+                         stdout, stderr)
 
 
 def main():
