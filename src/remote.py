@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import re
@@ -82,8 +82,6 @@ def purge_backup(backup_path):
 
 def back_up(wordpress_path, backup_compressor, backup_path):
 
-    backup_path = os.path.expanduser(backup_path)
-
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
@@ -102,7 +100,6 @@ def decompress_backup(backup_path, backup_decompressor):
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path, backup_decompressor):
 
-    backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
     decompress_backup(backup_path, backup_decompressor)
 
@@ -134,15 +131,15 @@ def restore(wordpress_path, backup_path, backup_decompressor):
 
 def main():
 
-    # First argument (at index 0) will always be a dash (-)
-    action = sys.argv[1]
+    # Parse action to take as well as its respective arguments
+    action, *action_args = sys.argv[1:]
 
     if action == 'back-up':
-        back_up(*sys.argv[2:])
+        back_up(*action_args)
     elif action == 'restore':
-        restore(*sys.argv[2:])
+        restore(*action_args)
     elif action == 'purge-backup':
-        purge_backup(*sys.argv[2:])
+        purge_backup(*action_args)
 
 if __name__ == '__main__':
     main()
