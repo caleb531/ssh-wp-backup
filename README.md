@@ -124,6 +124,16 @@ To restore a WordPress database to a local backup, specify the `--restore` or
 ssh-wp-backup ../mysite-config.ini -r ../mysite-backup.sql.gz
 ```
 
+#### Bypassing confirmation prompt
+
+By default, the utility prompts you for confirmation before restoring from
+backup. However, you may bypass this prompt by providing the `--force` or `-f`
+option.
+
+```
+ssh-wp-backup ../mysite-config.ini -rf ../mysite-backup.sql.gz
+```
+
 #### Silence output
 
 To silence output from the utility (both *stdout* and *stderr*), use the
