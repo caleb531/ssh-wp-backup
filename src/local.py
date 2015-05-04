@@ -65,6 +65,11 @@ def create_dir_structure(path):
         pass
 
 
+# Unquote ~ at beginning of path so it can be evaluated to home directory path
+def unquote_home_dir(path):
+    return re.sub('^\'~/', '~/\'', path)
+
+
 # Quote shell arguments in a backwards-compatible manner
 def quote_arg(arg):
     if hasattr(shlex, 'quote'):
@@ -73,6 +78,7 @@ def quote_arg(arg):
     else:
         # pipes.quote is deprecated, but use it if shlex.quote is unavailable
         arg = pipes.quote(arg)
+    arg = unquote_home_dir(arg)
     return arg
 
 
@@ -237,11 +243,6 @@ def restore(config, local_backup_path, stdout, stderr):
                          stdout=stdout, stderr=stderr)
 
 
-# Replace ~ with . (can be evaluated to home dir within quoted remote path)
-def protect_home_dir_path(path):
-    return re.sub('^~/', './', path)
-
-
 def main():
 
     cli_args = parse_cli_args()
@@ -253,11 +254,6 @@ def main():
     # Expand home directory for local backup path
     config.set('paths', 'local_backup', os.path.expanduser(
         config.get('paths', 'local_backup')))
-    # Prevent quoting of ~ at start of remote paths before it is expanded
-    config.set('paths', 'wordpress',
-               protect_home_dir_path(config.get('paths', 'wordpress')))
-    config.set('paths', 'remote_backup',
-               protect_home_dir_path(config.get('paths', 'remote_backup')))
 
     # Open /dev/null to redirect stdout/stderr if necessary
     with open(os.devnull, 'wb') as devnull:
