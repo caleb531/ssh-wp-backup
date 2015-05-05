@@ -75,7 +75,7 @@ def verify_backup_integrity(backup_path):
 
 
 # Purge remote backup (this is only run after download)
-def purge_backup(backup_path):
+def purge_downloaded_backup(backup_path):
 
     os.remove(backup_path)
 
@@ -89,12 +89,45 @@ def back_up(wordpress_path, backup_compressor, backup_path):
     verify_backup_integrity(backup_path)
 
 
-# Decompress the given backup file and return database contents
+# Decompress the given backup file to a database file in the same directory
 def decompress_backup(backup_path, backup_decompressor):
 
     compressor = subprocess.Popen(shlex.split(backup_decompressor) +
                                   [backup_path])
     compressor.wait()
+
+
+# Construct path to decompressed database file from given backup file
+def get_db_path(backup_path):
+
+    return re.sub('\.([A-Za-z0-9]+)$', '', backup_path)
+
+
+# Replace a WordPress database with the database at the given path
+def replace_db(db_name, db_host, db_user, db_password, db_path):
+
+    with open(db_path, 'r') as db_file:
+
+        # Execute SQL script on the respective database
+        mysql = subprocess.Popen([
+            'mysql',
+            db_name,
+            '-h', db_host,
+            '-u', db_user,
+            '-p{0}'.format(db_password)
+        ], stdin=db_file)
+
+        mysql.wait()
+
+
+# Purge backup and the decompressed database after it has been restored
+def purge_restored_backup(backup_path, db_path):
+
+    try:
+        os.remove(db_path)
+        os.remove(backup_path)
+    except OSError:
+        pass
 
 
 # Restore WordPress database using the given remote backup
@@ -104,34 +137,17 @@ def restore(wordpress_path, backup_path, backup_decompressor):
     decompress_backup(backup_path, backup_decompressor)
 
     db_info = get_db_info(wordpress_path)
-    # Construct path to decompressed database file from given backup file
-    db_path = re.sub('\.([A-Za-z0-9]+)$', '', backup_path)
+    db_path = get_db_path(backup_path)
 
-    with open(db_path, 'r') as db_file:
+    replace_db(db_info['name'], db_info['host'],
+               db_info['user'], db_info['password'], db_path)
 
-        # Execute SQL script on the respective database
-        mysql = subprocess.Popen([
-            'mysql',
-            db_info['name'],
-            '-h', db_info['host'],
-            '-u', db_info['user'],
-            '-p{0}'.format(db_info['password'])
-        ], stdin=db_file)
-
-        mysql.wait()
-
-    # Decompressed backup should always exist at this point
-    os.remove(db_path)
-    # Compressed backup may or may not be removed automatically by decompressor
-    try:
-        os.remove(backup_path)
-    except OSError:
-        pass
+    purge_restored_backup(backup_path, db_path)
 
 
 def main():
 
-    # Parse action to take as well as its respective arguments
+    # Parse action to take as well as the action's respective arguments
     action, *action_args = sys.argv[1:]
 
     if action == 'back-up':
@@ -139,7 +155,7 @@ def main():
     elif action == 'restore':
         restore(*action_args)
     elif action == 'purge-backup':
-        purge_backup(*action_args)
+        purge_downloaded_backup(*action_args)
 
 if __name__ == '__main__':
     main()
