@@ -20,7 +20,7 @@ This utility assumes that you have (or have access to) the following:
 - A WordPress installation on said server
 - The `mysql` and `mysqldump` utilities installed on said server
 - Python 3 installed on both the local and remote systems
-	- Why? Because [Python 3 is *better*](http://asmeurer.github.io/python3-presentation/slides.html#1)
+	- Why? Because [Python 3 is *better*](https://docs.python.org/3/whatsnew/3.0.html)
 
 ### Configuring SSH
 
@@ -41,24 +41,20 @@ properties marked as optional):
 	- *e.g.* `~/public_html/mysite`
 - `remote_backup`: the absolute path to the database backup file to be created
 	- for security, this path should be outside of the `public_html/` directory
-	- the filename may include [date format sequences](http://strftime.org/)
+	- the path may include [date format sequences](http://strftime.org/)
 		such as `%Y`
 	- the utility will automatically create intermediate directories apart of
 		the path if they do not exist
 	- *e.g.* `~/backups/mysitedb-%Y-%m-%d.sql.gz`
-- `local_backup`: the absolute path to the local backup file to be created (or
-	the path to its containing directory)
-	- the filename may also include `date` format sequences
+- `local_backup`: the absolute path to the local backup file to be created
+	- the path may also include date format sequences
 	- like `remote_backup`, the utility will also create intermediate
-		directories
+		directories if they do not exist
 	- *e.g.* `~/Documents/Backups/%Y-%m-%d/mysitedb-%H-%M-%S.sql.gz`
-	- *e.g.* `~/Documents/Backups`
 
 #### [ssh]
 
 - `user`: the name of the user under which to log in
-	- This is concatenated with the given hostname internally
-	- *e.g.* `myname`
 - `hostname`: the hostname or IP address used to connect.
 - `port`: the port number used to connect
 
@@ -134,7 +130,7 @@ option.
 ssh-wp-backup ../mysite-config.ini -rf ../mysite-backup.sql.gz
 ```
 
-#### Silence output
+#### Silencing output
 
 To silence output from the utility (both *stdout* and *stderr*), use the
 `--quiet` or `-q` option:
