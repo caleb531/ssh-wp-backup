@@ -171,6 +171,27 @@ def purge_remote_backup(user, hostname, port, remote_backup_path,
 def get_last_modified_time(path):
     return os.stat(path).st_mtime
 
+
+# Purge empty directories originally created to store now-purged backups
+def purge_empty_dirs(dir_path):
+
+    # This construct functions as a do-while loop
+    while True:
+        dir_path = os.path.dirname(dir_path)
+        dir_name = os.path.basename(dir_path)
+        # If containing directory name represents a timestamped directory
+        if '*' in dir_name:
+            expanded_dir_paths = glob.iglob(dir_path)
+            # Purge all empty child directories
+            for expanded_dir_path in expanded_dir_paths:
+                try:
+                    os.rmdir(expanded_dir_path)
+                except OSError:
+                    pass
+        elif dir_path == '/':
+            break
+
+
 # Purge oldest backups to keep number of backups within specified limit
 def purge_oldest_backups(local_backup_path, max_local_backups):
 
@@ -184,6 +205,9 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 
     for backup in backups_to_purge:
         os.remove(backup)
+
+    # Purge created directories that are now empty
+    purge_empty_dirs(local_backup_path)
 
 
 # Run backup script on remote
