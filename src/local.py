@@ -189,8 +189,6 @@ def back_up(config, stdout, stderr):
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
 
-    create_dir_structure(expanded_local_backup_path)
-
     create_remote_backup(config.get('ssh', 'user'),
                          config.get('ssh', 'hostname'),
                          config.get('ssh', 'port'),
@@ -198,6 +196,8 @@ def back_up(config, stdout, stderr):
                          expanded_remote_backup_path,
                          config.get('backup', 'compressor'),
                          stdout, stderr)
+
+    create_dir_structure(expanded_local_backup_path)
 
     download_remote_backup(config.get('ssh', 'user'),
                            config.get('ssh', 'hostname'),
