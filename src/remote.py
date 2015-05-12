@@ -50,13 +50,12 @@ def dump_db(db_info, backup_compressor, backup_path):
         db_info['name'],
         '-h', db_info['host'],
         '-u', db_info['user'],
-        '-p{0}'.format(db_info['password']),
+        '-p{}'.format(db_info['password']),
         '--add-drop-table'
     ], stdout=subprocess.PIPE)
 
     # Create remote backup so as to write output of dump/compress to file
-    # Binary mode (b) does nothing on Unix systems; only needed for Windows
-    with open(backup_path, 'wb') as backup_file:
+    with open(backup_path, 'w') as backup_file:
 
         compressor = subprocess.Popen(shlex.split(backup_compressor),
                                       stdin=mysqldump.stdout,
@@ -114,7 +113,7 @@ def replace_db(db_name, db_host, db_user, db_password, db_path):
             db_name,
             '-h', db_host,
             '-u', db_user,
-            '-p{0}'.format(db_password)
+            '-p{}'.format(db_password)
         ], stdin=db_file)
 
         mysql.wait()

@@ -67,19 +67,21 @@ def create_dir_structure(path):
 
 # Unquote ~ at beginning of path so it can be evaluated to home directory path
 def unquote_home_dir(path):
+
     return re.sub('^\'~/', '~/\'', path)
 
 
 # Quote shell arguments in a backwards-compatible manner
 def quote_arg(arg):
+
     if hasattr(shlex, 'quote'):
         # shlex.quote was introduced in v3.3
-        arg = shlex.quote(arg)
+        quoted_arg = shlex.quote(arg)
     else:
         # pipes.quote is deprecated, but use it if shlex.quote is unavailable
-        arg = pipes.quote(arg)
-    arg = unquote_home_dir(arg)
-    return arg
+        quoted_arg = pipes.quote(arg)
+    quoted_arg = unquote_home_dir(arg)
+    return quoted_arg
 
 
 # Connect to remote via SSH and execute remote script
@@ -87,7 +89,7 @@ def exec_on_remote(user, hostname, port, action, action_args,
                    *, stdout, stderr):
 
     # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'remote.py')) as remote_script:
+    with open(os.path.join(program_dir, 'remote.py'), 'r') as remote_script:
 
         action_args = [quote_arg(arg) for arg in action_args]
 
@@ -165,15 +167,19 @@ def purge_remote_backup(user, hostname, port, remote_backup_path,
                    stdout=stdout, stderr=stderr)
 
 
+# Retrieve a file's last modified time in seconds
+def get_last_modified_time(path):
+    return os.stat(path).st_mtime
+
 # Purge oldest backups to keep number of backups within specified limit
 def purge_oldest_backups(local_backup_path, max_local_backups):
 
     # Convert date format sequences to wildcards
-    local_backup_path = re.sub('%[A-Za-z]', '*', local_backup_path)
+    local_backup_path = re.sub('%\-?[A-Za-z]', '*', local_backup_path)
 
     # Retrieve list of local backups sorted from oldest to newest
     local_backups = sorted(glob.iglob(local_backup_path),
-                           key=lambda path: os.stat(path).st_mtime)
+                           key=get_last_modified_time)
     backups_to_purge = local_backups[:-max_local_backups]
 
     for backup in backups_to_purge:
@@ -256,7 +262,7 @@ def main():
         config.get('paths', 'local_backup')))
 
     # Open /dev/null to redirect stdout/stderr if necessary
-    with open(os.devnull, 'wb') as devnull:
+    with open(os.devnull, 'w') as devnull:
 
         if cli_args.quiet:
             stdout = stderr = devnull
