@@ -13,8 +13,9 @@ import sys
 import time
 
 
-# Make program directory globally accessible to script
+# Make program-related paths globally accessible to script
 program_dir = os.path.dirname(os.path.realpath(__file__))
+remote_driver_path = os.path.join(program_dir, 'remote.py')
 
 
 # Parse command line arguments passed to the local driver
@@ -48,10 +49,10 @@ def parse_cli_args():
 
 
 # Parse configuration files at given paths into object
-def parse_config(config_paths):
+def parse_config(config_path):
 
     config = configparser.RawConfigParser()
-    config.read(config_paths)
+    config.read(config_path)
 
     return config
 
@@ -89,7 +90,7 @@ def exec_on_remote(user, hostname, port, action, action_args,
                    *, stdout, stderr):
 
     # Read remote script so as to pass contents to SSH session
-    with open(os.path.join(program_dir, 'remote.py'), 'r') as remote_script:
+    with open(remote_driver_path, 'r') as remote_script:
 
         action_args = [quote_arg(arg) for arg in action_args]
 
@@ -179,10 +180,10 @@ def purge_empty_dirs(dir_path):
     while True:
         dir_path = os.path.dirname(dir_path)
         dir_name = os.path.basename(dir_path)
-        # If containing directory name represents a timestamped directory
+        # If containing directory represents a timestamped directory
         if '*' in dir_name:
             expanded_dir_paths = glob.iglob(dir_path)
-            # Purge all empty child directories
+            # Purge all empty timestamped directories
             for expanded_dir_path in expanded_dir_paths:
                 try:
                     os.rmdir(expanded_dir_path)
@@ -211,7 +212,7 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 
 
 # Run backup script on remote
-def back_up(config, stdout, stderr):
+def back_up(config, *, stdout, stderr):
 
     # Expand date format sequences in both backup paths
     expanded_local_backup_path = time.strftime(
@@ -249,7 +250,7 @@ def back_up(config, stdout, stderr):
 
 
 # Restore the chosen database revision to the Wordpress install on remote
-def restore(config, local_backup_path, stdout, stderr):
+def restore(config, local_backup_path, *, stdout, stderr):
 
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
@@ -276,10 +277,7 @@ def restore(config, local_backup_path, stdout, stderr):
 def main():
 
     cli_args = parse_cli_args()
-
-    default_config_path = os.path.join(program_dir, 'config', 'defaults.ini')
-    config_path = cli_args.config_path
-    config = parse_config([default_config_path, config_path])
+    config = parse_config(cli_args.config_path)
 
     # Expand home directory for local backup path
     config.set('paths', 'local_backup', os.path.expanduser(
@@ -298,11 +296,11 @@ def main():
             if not cli_args.force:
                 print('Backup will overwrite WordPress database')
                 answer = input('Do you want to continue? (y/n) ')
-                if 'y' not in answer.lower():
+                if answer.lower().lstrip().startswith('y'):
                     raise Exception('User canceled. Aborting.')
-            restore(config, cli_args.restore, stdout, stderr)
+            restore(config, cli_args.restore, stdout=stdout, stderr=stderr)
         else:
-            back_up(config, stdout, stderr)
+            back_up(config, stdout=stdout, stderr=stderr)
 
 if __name__ == '__main__':
     main()
