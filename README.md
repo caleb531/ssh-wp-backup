@@ -37,10 +37,9 @@ properties marked as optional):
 
 #### [paths]
 
-- `wordpress`: the absolute path to the remote WordPress site
+- `wordpress`: the absolute path to the directory for the remote WordPress site
 	- *e.g.* `~/public_html/mysite`
 - `remote_backup`: the absolute path to the database backup file to be created
-	- for security, this path should be outside of the `public_html/` directory
 	- the path may include [date format sequences](http://strftime.org/)
 		such as `%Y`
 	- the utility will automatically create intermediate directories apart of
@@ -60,18 +59,17 @@ properties marked as optional):
 
 #### [backup]
 
-- `compressor`: optional; the shell command used for compressing the
+- `compressor`: the shell command used for compressing the
 	database backup on the server
-	- defaults to `gzip` if no command is given
 	- if you specify this option, you must ensure that the file extensions for
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
-	- *e.g.* `bzip2`
-- `decompressor`: optional; the shell command used for decompressing the backup
+	- *e.g.* `gzip`, `bzip2`
+- `decompressor`: the shell command used for decompressing the backup
 	when restoring from backup
-	- defaults to `gzip -d` if no command is given
-	- if this option is present, the `compressor` option must also be present (and vice-versa)
-	- *e.g.* `bzip2 -d`
+	- if this option is present, the `compressor` option must also be present
+		(and vice-versa)
+	- *e.g.* `gzip -d`, `bzip2 -d`
 - `max_local_backups`: optional; the maximum number of local backups to keep
 	- as new local backups are created, old backups are purged to keep within
 		the limit
