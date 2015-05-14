@@ -81,7 +81,7 @@ def quote_arg(arg):
     else:
         # pipes.quote is deprecated, but use it if shlex.quote is unavailable
         quoted_arg = pipes.quote(arg)
-    quoted_arg = unquote_home_dir(arg)
+    quoted_arg = unquote_home_dir(quoted_arg)
     return quoted_arg
 
 
@@ -116,9 +116,9 @@ def exec_on_remote(user, hostname, port, action, action_args,
 
 # Transfer a file from remote to local (or vice-versa) using SCP
 def transfer_file(user, hostname, port, src_path, dest_path,
-                  *, download=True, upload=False, stdout, stderr):
+                  *, action, stdout, stderr):
 
-    if upload:
+    if action == 'upload':
         scp_args = [
             'scp',
             '-P {}'.format(port),
@@ -126,7 +126,7 @@ def transfer_file(user, hostname, port, src_path, dest_path,
             '{}@{}:{}'.format(user, hostname,
                               quote_arg(dest_path))
         ]
-    elif download:
+    elif action == 'download':
         scp_args = [
             'scp',
             '-P {}'.format(port),
@@ -143,7 +143,7 @@ def transfer_file(user, hostname, port, src_path, dest_path,
 # Execute remote backup script to create remote backup
 def create_remote_backup(user, hostname, port, wordpress_path,
                          remote_backup_path, backup_compressor,
-                         stdout, stderr):
+                         *, stdout, stderr):
 
     exec_on_remote(user, hostname, port, 'back-up', [
         wordpress_path,
@@ -154,10 +154,10 @@ def create_remote_backup(user, hostname, port, wordpress_path,
 
 # Download remote backup to local system
 def download_remote_backup(user, hostname, port, remote_backup_path,
-                           local_backup_path, stdout, stderr):
+                           local_backup_path, *, stdout, stderr):
 
     transfer_file(user, hostname, port, remote_backup_path, local_backup_path,
-                  download=True, stdout=stdout, stderr=stderr)
+                  action='download', stdout=stdout, stderr=stderr)
 
 
 # Forcefully remove backup from remote
@@ -189,7 +189,7 @@ def purge_empty_dirs(dir_path):
                     os.rmdir(expanded_dir_path)
                 except OSError:
                     pass
-        elif dir_path == '/':
+        elif dir_path == '/' or dir_path == '':
             break
 
 
@@ -214,6 +214,10 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 # Run backup script on remote
 def back_up(config, *, stdout, stderr):
 
+    # Expand home directory for local backup path
+    config.set('paths', 'local_backup', os.path.expanduser(
+        config.get('paths', 'local_backup')))
+
     # Expand date format sequences in both backup paths
     expanded_local_backup_path = time.strftime(
         config.get('paths', 'local_backup'))
@@ -226,7 +230,7 @@ def back_up(config, *, stdout, stderr):
                          config.get('paths', 'wordpress'),
                          expanded_remote_backup_path,
                          config.get('backup', 'compressor'),
-                         stdout, stderr)
+                         stdout=stdout, stderr=stderr)
 
     create_dir_structure(expanded_local_backup_path)
 
@@ -235,7 +239,7 @@ def back_up(config, *, stdout, stderr):
                            config.get('ssh', 'port'),
                            expanded_remote_backup_path,
                            expanded_local_backup_path,
-                           stdout, stderr)
+                           stdout=stdout, stderr=stderr)
 
     purge_remote_backup(config.get('ssh', 'user'),
                         config.get('ssh', 'hostname'),
@@ -243,8 +247,7 @@ def back_up(config, *, stdout, stderr):
                         expanded_remote_backup_path,
                         stdout, stderr)
 
-    if config.has_option('backup', 'max_local_backups') and not os.path.isdir(
-       config.get('paths', 'local_backup')):
+    if config.has_option('backup', 'max_local_backups'):
         purge_oldest_backups(config.get('paths', 'local_backup'),
                              config.getint('backup', 'max_local_backups'))
 
@@ -260,7 +263,7 @@ def restore(config, local_backup_path, *, stdout, stderr):
                   config.get('ssh', 'port'),
                   local_backup_path,
                   expanded_remote_backup_path,
-                  upload=True, stdout=stdout, stderr=stderr)
+                  action='upload', stdout=stdout, stderr=stderr)
 
     action_args = [
         config.get('paths', 'wordpress'),
@@ -279,10 +282,6 @@ def main():
     cli_args = parse_cli_args()
     config = parse_config(cli_args.config_path)
 
-    # Expand home directory for local backup path
-    config.set('paths', 'local_backup', os.path.expanduser(
-        config.get('paths', 'local_backup')))
-
     # Open /dev/null to redirect stdout/stderr if necessary
     with open(os.devnull, 'w') as devnull:
 
@@ -296,7 +295,7 @@ def main():
             if not cli_args.force:
                 print('Backup will overwrite WordPress database')
                 answer = input('Do you want to continue? (y/n) ')
-                if answer.lower().lstrip().startswith('y'):
+                if not answer.lower().lstrip().startswith('y'):
                     raise Exception('User canceled. Aborting.')
             restore(config, cli_args.restore, stdout=stdout, stderr=stderr)
         else:
