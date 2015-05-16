@@ -118,20 +118,16 @@ def exec_on_remote(user, hostname, port, action, action_args,
 def transfer_file(user, hostname, port, src_path, dest_path,
                   *, action, stdout, stderr):
 
+    scp_args = ['scp', '-P {}'.format(port)]
+
     if action == 'upload':
-        scp_args = [
-            'scp',
-            '-P {}'.format(port),
+        scp_args += [
             src_path,
-            '{}@{}:{}'.format(user, hostname,
-                              quote_arg(dest_path))
+            '{}@{}:{}'.format(user, hostname, quote_arg(dest_path))
         ]
     elif action == 'download':
-        scp_args = [
-            'scp',
-            '-P {}'.format(port),
-            '{}@{}:{}'.format(user, hostname,
-                              quote_arg(src_path)),
+        scp_args += [
+            '{}@{}:{}'.format(user, hostname, quote_arg(src_path)),
             dest_path
         ]
 
@@ -162,7 +158,7 @@ def download_remote_backup(user, hostname, port, remote_backup_path,
 
 # Forcefully remove backup from remote
 def purge_remote_backup(user, hostname, port, remote_backup_path,
-                        stdout, stderr):
+                        *, stdout, stderr):
 
     exec_on_remote(user, hostname, port, 'purge-backup', [remote_backup_path],
                    stdout=stdout, stderr=stderr)
@@ -189,7 +185,7 @@ def purge_empty_dirs(dir_path):
                     os.rmdir(expanded_dir_path)
                 except OSError:
                     pass
-        elif dir_path == '/' or dir_path == '':
+        elif dir_path == '/':
             break
 
 
@@ -245,7 +241,7 @@ def back_up(config, *, stdout, stderr):
                         config.get('ssh', 'hostname'),
                         config.get('ssh', 'port'),
                         expanded_remote_backup_path,
-                        stdout, stderr)
+                        stdout=stdout, stderr=stderr)
 
     if config.has_option('backup', 'max_local_backups'):
         purge_oldest_backups(config.get('paths', 'local_backup'),
@@ -258,6 +254,7 @@ def restore(config, local_backup_path, *, stdout, stderr):
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
 
+    # Copy local backup to remote so it can be used for restoration
     transfer_file(config.get('ssh', 'user'),
                   config.get('ssh', 'hostname'),
                   config.get('ssh', 'port'),
