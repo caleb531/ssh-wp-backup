@@ -43,14 +43,15 @@ def get_db_info(wordpress_path):
 
 
 # Dump MySQL database to compressed file on remote
-def dump_db(db_info, backup_compressor, backup_path):
+def dump_db(db_name, db_host, db_user, db_password,
+            backup_compressor, backup_path):
 
     mysqldump = subprocess.Popen([
         'mysqldump',
-        db_info['name'],
-        '-h', db_info['host'],
-        '-u', db_info['user'],
-        '-p{}'.format(db_info['password']),
+        db_name,
+        '-h', db_host,
+        '-u', db_user,
+        '-p{}'.format(db_password),
         '--add-drop-table'
     ], stdout=subprocess.PIPE)
 
@@ -84,7 +85,9 @@ def back_up(wordpress_path, backup_compressor, backup_path):
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info, backup_compressor, backup_path)
+    dump_db(db_info['name'], db_info['host'],
+            db_info['user'], db_info['password'],
+            backup_compressor, backup_path)
     verify_backup_integrity(backup_path)
 
 
