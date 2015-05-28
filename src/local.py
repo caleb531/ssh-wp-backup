@@ -105,8 +105,6 @@ def exec_on_remote(ssh_user, ssh_hostname, ssh_port, action, action_args,
             action  # The action to run on remote
         ] + action_args
 
-        print(ssh_args)
-
         ssh = subprocess.Popen(ssh_args, stdin=remote_script,
                                stdout=stdout, stderr=stderr)
 
