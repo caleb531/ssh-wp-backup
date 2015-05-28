@@ -2,22 +2,12 @@
 
 import glob
 import os.path
-import re
-from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock, patch
 
 
 # Class for instantiating empty objects on which attributes can be set
 class AttrObject(object):
     pass
-
-
-# Mock the os.stat() function
-def mock_os_stat(path):
-    date_ymd = re.search('\d+/\d+/\d+', path).group(0)
-    stats = AttrObject()
-    stats.st_mtime = datetime.strptime(date_ymd, '%Y/%m/%d')
-    return stats
 
 
 mock_backups = [
@@ -29,11 +19,11 @@ mock_backups = [
 ]
 
 
-def mock_iglob(path):
-    if '*' in path:
-        return [os.path.dirname(backup_path) for backup_path in mock_backups]
-    else:
-        return mock_backups
+# Mock the os.stat() function
+def mock_os_stat(path):
+    stats = AttrObject()
+    stats.st_mtime = mock_backups.index(path)
+    return stats
 
 
 def mock_module_imports(module):
@@ -47,7 +37,7 @@ def mock_module_imports(module):
     module.os.path.dirname = os.path.dirname
     module.os.path.basename = os.path.basename
     module.subprocess = MagicMock()
-    module.glob.iglob = mock_iglob
+    module.glob.iglob = MagicMock(return_value=mock_backups)
 
     fake_stdout = MagicMock()
     fake_stderr = MagicMock()

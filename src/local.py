@@ -213,57 +213,69 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
 
 
 # Run backup script on remote
-def back_up(ssh_user, ssh_hostname, ssh_port, wordpress_path,
-            remote_backup_path, backup_compressor, local_backup_path,
-            max_local_backups, *, stdout, stderr):
+def back_up(config, *, stdout=None, stderr=None):
 
     # Expand home directory for local backup path
-    local_backup_path = os.path.expanduser(local_backup_path)
+    config.set('paths', 'local_backup', os.path.expanduser(
+        config.get('paths', 'local_backup')))
 
     # Expand date format sequences in both backup paths
     expanded_local_backup_path = time.strftime(
-        local_backup_path)
+        config.get('paths', 'local_backup'))
     expanded_remote_backup_path = time.strftime(
-        remote_backup_path)
+        config.get('paths', 'remote_backup'))
 
-    create_remote_backup(ssh_user, ssh_hostname, ssh_port,
-                         wordpress_path, expanded_remote_backup_path,
-                         backup_compressor, stdout=stdout, stderr=stderr)
+    create_remote_backup(config.get('ssh', 'user'),
+                         config.get('ssh', 'hostname'),
+                         config.get('ssh', 'port'),
+                         config.get('paths', 'wordpress'),
+                         expanded_remote_backup_path,
+                         config.get('backup', 'compressor'),
+                         stdout=stdout, stderr=stderr)
 
     create_dir_structure(expanded_local_backup_path)
 
-    download_remote_backup(ssh_user, ssh_hostname, ssh_port,
+    download_remote_backup(config.get('ssh', 'user'),
+                           config.get('ssh', 'hostname'),
+                           config.get('ssh', 'port'),
                            expanded_remote_backup_path,
                            expanded_local_backup_path,
                            stdout=stdout, stderr=stderr)
 
-    purge_remote_backup(ssh_user, ssh_hostname, ssh_port,
+    purge_remote_backup(config.get('ssh', 'user'),
+                        config.get('ssh', 'hostname'),
+                        config.get('ssh', 'port'),
                         expanded_remote_backup_path,
                         stdout=stdout, stderr=stderr)
 
-    if max_local_backups:
-        purge_oldest_backups(local_backup_path, max_local_backups)
+    if config.has_option('backup', 'max_local_backups'):
+        purge_oldest_backups(config.get('paths', 'local_backup'),
+                             config.getint('backup', 'max_local_backups'))
 
 
 # Restore the chosen database revision to the Wordpress install on remote
-def restore(ssh_user, ssh_hostname, ssh_port, wordpress_path,
-            remote_backup_path, backup_decompressor, local_backup_path,
-            *, stdout, stderr):
+def restore(config, local_backup_path, *, stdout=None, stderr=None):
 
-    expanded_remote_backup_path = time.strftime(remote_backup_path)
+    expanded_remote_backup_path = time.strftime(
+        config.get('paths', 'remote_backup'))
 
     # Copy local backup to remote so it can be used for restoration
-    transfer_file(ssh_user, ssh_hostname, ssh_port,
-                  local_backup_path, expanded_remote_backup_path,
+    transfer_file(config.get('ssh', 'user'),
+                  config.get('ssh', 'hostname'),
+                  config.get('ssh', 'port'),
+                  local_backup_path,
+                  expanded_remote_backup_path,
                   action='upload', stdout=stdout, stderr=stderr)
 
     action_args = [
-        wordpress_path,
+        config.get('paths', 'wordpress'),
         expanded_remote_backup_path,
-        backup_decompressor
+        config.get('backup', 'decompressor')
     ]
-    ssh = exec_on_remote(ssh_user, ssh_hostname, ssh_port,
-                         action='restore', action_args=action_args,
+    ssh = exec_on_remote(config.get('ssh', 'user'),
+                         config.get('ssh', 'hostname'),
+                         config.get('ssh', 'port'),
+                         'restore', action_args,
                          stdout=stdout, stderr=stderr)
 
 
@@ -281,35 +293,15 @@ def main():
             stdout = stderr = None
 
         if cli_args.restore:
-
-            # Prompt ssh_user for confirmation before restoring from backup
+            # Prompt user for confirmation before restoring from backup
             if not cli_args.force:
                 print('Backup will overwrite WordPress database')
                 answer = input('Do you want to continue? (y/n) ')
                 if not answer.lower().lstrip().startswith('y'):
-                    raise Exception('ssh_user canceled. Aborting.')
-
-            restore(config.get('ssh', 'user'),
-                    config.get('ssh', 'hostname'),
-                    config.get('ssh', 'port'),
-                    config.get('paths', 'wordpress'),
-                    config.get('paths', 'remote_backup'),
-                    config.get('backup', 'decompressor'),
-                    cli_args.restore,
-                    stdout=stdout, stderr=stderr)
-
+                    raise Exception('User canceled. Aborting.')
+            restore(config, cli_args.restore, stdout=stdout, stderr=stderr)
         else:
-
-            back_up(config.get('ssh', 'user'),
-                    config.get('ssh', 'hostname'),
-                    config.get('ssh', 'port'),
-                    config.get('paths', 'wordpress'),
-                    config.get('paths', 'remote_backup'),
-                    config.get('backup', 'compressor'),
-                    config.get('paths', 'local_backup'),
-                    config.getint('backup', 'max_local_backups',
-                                  fallback=None),
-                    stdout=stdout, stderr=stderr)
+            back_up(config, stdout=stdout, stderr=stderr)
 
 if __name__ == '__main__':
     main()
