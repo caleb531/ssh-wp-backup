@@ -2,7 +2,7 @@
 
 import glob
 import os.path
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, Mock, NonCallableMock, patch
 
 
 # Class for instantiating empty objects on which attributes can be set

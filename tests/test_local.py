@@ -2,6 +2,7 @@
 
 import configparser
 import os
+import shlex
 import sys
 import nose.tools as nose
 import mocks
@@ -97,3 +98,16 @@ def test_main(mock_back_up):
     swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
     swb.main()
     swb.back_up.assert_any_call(config, stdout=None, stderr=None)
+
+
+def test_missing_shlex_quote():
+    '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
+    swb.shlex = mocks.NonCallableMock()
+    del swb.shlex.quote
+    config = get_test_config()
+    swb.back_up(config)
+    swb.subprocess.Popen.assert_any_call(
+        # Ignore preceding arguments. Only check if
+        ([mocks.ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
+        stdin=mocks.ANY, stdout=None, stderr=None)
+    swb.shlex.quote = shlex.quote
