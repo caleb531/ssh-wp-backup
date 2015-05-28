@@ -5,10 +5,12 @@ import os
 import shlex
 import sys
 import nose.tools as nose
-import mocks
 import src.local as swb
+import mocks.local as mocks
+from unittest.mock import ANY, NonCallableMock, patch
+from fixtures.local import before_all, before_each, after_each
 
-mocks.mock_module_imports(swb)
+
 TEST_CONFIG_PATH = 'tests/config/testconfig.ini'
 
 
@@ -21,10 +23,11 @@ def get_test_config():
 
 def test_config_parser():
     '''should parse configuration file correctly'''
-    config = swb.parse_config('tests/config/testconfig.ini')
+    config = swb.parse_config(TEST_CONFIG_PATH)
     nose.assert_is_instance(config, configparser.RawConfigParser)
 
 
+@nose.with_setup(before_each, after_each)
 def test_create_remote_backup():
     '''should create remote backup via SSH'''
     config = get_test_config()
@@ -34,9 +37,10 @@ def test_create_remote_backup():
         '~/\'public_html/mysite\'',
         'bzip2',
         '~/\'backups/mysite.sql.bz2\''],
-        stdin=mocks.ANY, stdout=None, stderr=None)
+        stdin=ANY, stdout=None, stderr=None)
 
 
+@nose.with_setup(before_each, after_each)
 def test_download_remote_backup():
     '''should download remote backup via SCP'''
     config = get_test_config()
@@ -47,6 +51,7 @@ def test_download_remote_backup():
         stdout=None, stderr=None)
 
 
+@nose.with_setup(before_each, after_each)
 def test_create_dir_structure():
     '''should create intermediate directories'''
     config = get_test_config()
@@ -54,15 +59,16 @@ def test_create_dir_structure():
     swb.os.makedirs.assert_any_call(os.path.expanduser('~/Backups'))
 
 
+@nose.with_setup(before_each, after_each)
 def test_create_dir_structure_silent_fail():
     '''should fail silently if intermediate directories already exist'''
     config = get_test_config()
-    with mocks.patch('src.local.os.makedirs', side_effect=OSError):
+    with patch('src.local.os.makedirs', side_effect=OSError):
         swb.back_up(config)
         swb.os.makedirs.assert_any_call(os.path.expanduser('~/Backups'))
-        swb.os.makedirs = mocks.MagicMock()
 
 
+@nose.with_setup(before_each, after_each)
 def test_purge_remote_backup():
     '''should purge remote backup after download'''
     config = get_test_config()
@@ -70,9 +76,10 @@ def test_purge_remote_backup():
     swb.subprocess.Popen.assert_any_call([
         'ssh', '-p 2222', 'myname@mysite.com', 'python3', '-', 'purge-backup',
         '~/\'backups/mysite.sql.bz2\''],
-        stdin=mocks.ANY, stdout=None, stderr=None)
+        stdin=ANY, stdout=None, stderr=None)
 
 
+@nose.with_setup(before_each, after_each)
 def test_purge_oldest_backups():
     '''should purge oldest local backups after download'''
     config = get_test_config()
@@ -82,42 +89,61 @@ def test_purge_oldest_backups():
         swb.os.remove.assert_any_call(path)
 
 
+@nose.with_setup(before_each, after_each)
 def test_purge_empty_dirs():
     '''should purge empty timestamped directories'''
     config = get_test_config()
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    max_local_backups = config.getint('backup', 'max_local_backups')
     swb.back_up(config)
-    for path in mocks.mock_backups[:-3]:
+    for path in mocks.mock_backups[:-max_local_backups]:
         swb.os.rmdir.assert_any_call(path)
 
 
-@mocks.patch('src.local.back_up')
-def test_main(mock_back_up):
+@nose.with_setup(before_each, after_each)
+def test_keep_nonempty_dirs():
+    '''should not purge nonempty timestamped directories'''
+    config = get_test_config()
+    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    max_local_backups = config.getint('backup', 'max_local_backups')
+    with patch('src.local.os.rmdir', side_effect=OSError):
+        swb.back_up(config)
+        for path in mocks.mock_backups[:-max_local_backups]:
+            swb.os.rmdir.assert_any_call(path)
+
+
+@nose.with_setup(before_each, after_each)
+def test_main():
     '''should call back_up() when config path is passed to main()'''
     config = get_test_config()
     swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
-    swb.main()
-    swb.back_up.assert_any_call(config, stdout=None, stderr=None)
+    with patch('src.local.back_up'):
+        swb.main()
+        swb.back_up.assert_any_call(config, stdout=None, stderr=None)
 
 
+@nose.with_setup(before_each, after_each)
 def test_missing_shlex_quote():
     '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
-    swb.shlex = mocks.NonCallableMock()
+    swb.shlex = NonCallableMock()
     del swb.shlex.quote
     config = get_test_config()
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call(
         # Only check if path is quoted (ignore preceding arguments)
-        ([mocks.ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
-        stdin=mocks.ANY, stdout=None, stderr=None)
+        ([ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
+        stdin=ANY, stdout=None, stderr=None)
     swb.shlex.quote = shlex.quote
 
 
+@nose.with_setup(before_each, after_each)
 def test_ssh_error():
-    '''should exit local driver if SSH process returns non-zero exit code'''
+    '''should exit if SSH process returns non-zero exit code'''
     config = get_test_config()
     swb.subprocess.Popen.return_value.returncode = 3
-    with mocks.patch('src.local.sys.exit') as mock_exit:
+    with patch('src.local.sys.exit'):
         swb.back_up(config)
-        mock_exit.assert_any_call(3)
-    swb.subprocess.reset_mock()
+        swb.sys.exit.assert_any_call(3)
+
+
+before_all()
