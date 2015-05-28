@@ -90,6 +90,16 @@ def test_purge_oldest_backups():
 
 
 @nose.with_setup(before_each, after_each)
+def test_null_max_local_backups():
+    '''should keep all backups if max_local_backups is not set'''
+    config = get_test_config()
+    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    config.remove_option('backup', 'max_local_backups')
+    swb.back_up(config)
+    nose.assert_equal(swb.os.remove.call_count, 0)
+
+
+@nose.with_setup(before_each, after_each)
 def test_purge_empty_dirs():
     '''should purge empty timestamped directories'''
     config = get_test_config()
