@@ -10,6 +10,7 @@ from unittest.mock import Mock, NonCallableMagicMock
 
 def before_all():
 
+    swb.input = Mock()
     swb.glob.iglob = Mock(return_value=mocks.mock_backups)
     swb.os = NonCallableMagicMock()
     swb.os.devnull = os.devnull
@@ -28,6 +29,7 @@ def before_each():
 
 
 def after_each():
+    swb.input.reset_mock()
     swb.os.makedirs.reset_mock()
     swb.os.remove.reset_mock()
     swb.os.rmdir.reset_mock()

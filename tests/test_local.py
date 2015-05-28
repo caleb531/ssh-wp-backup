@@ -11,7 +11,8 @@ from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
 from fixtures.local import before_all, before_each, after_each
 
 
-TEST_CONFIG_PATH = 'tests/config/testconfig.ini'
+TEST_CONFIG_PATH = 'tests/files/config.ini'
+TEST_BACKUP_PATH = '~/Backups/mysite.sql.bz2'
 
 
 @nose.nottest
@@ -104,9 +105,8 @@ def test_purge_empty_dirs():
     '''should purge empty timestamped directories'''
     config = get_test_config()
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
-    max_local_backups = config.getint('backup', 'max_local_backups')
     swb.back_up(config)
-    for path in mocks.mock_backups[:-max_local_backups]:
+    for path in mocks.mock_backups[:-3]:
         swb.os.rmdir.assert_any_call(path)
 
 
@@ -115,15 +115,14 @@ def test_keep_nonempty_dirs():
     '''should not purge nonempty timestamped directories'''
     config = get_test_config()
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
-    max_local_backups = config.getint('backup', 'max_local_backups')
     with patch('src.local.os.rmdir', side_effect=OSError):
         swb.back_up(config)
-        for path in mocks.mock_backups[:-max_local_backups]:
+        for path in mocks.mock_backups[:-3]:
             swb.os.rmdir.assert_any_call(path)
 
 
 @nose.with_setup(before_each, after_each)
-def test_main():
+def test_main_back_up():
     '''should call back_up() when config path is passed to main()'''
     config = get_test_config()
     swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
@@ -168,5 +167,53 @@ def test_quiet_mode():
         file_obj.assert_any_call(os.devnull, 'w')
         swb.subprocess.Popen.assert_any_call(ANY,
                                              stdout=devnull, stderr=devnull)
+
+
+@nose.with_setup(before_each, after_each)
+def test_main_restore():
+    '''should call restore() when config path is passed to main()'''
+    config = get_test_config()
+    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
+    with patch('src.local.restore'):
+        swb.main()
+        swb.input.assert_called_with(ANY)
+        swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                       stdout=None, stderr=None)
+
+
+@nose.with_setup(before_each, after_each)
+def test_force_mode():
+    '''should bypass restore confirmation in force mode'''
+    config = get_test_config()
+    swb.sys.argv = [swb.__file__, '-f', TEST_CONFIG_PATH, '-r',
+                    TEST_BACKUP_PATH]
+    with patch('src.local.restore'):
+        swb.main()
+        nose.assert_equal(swb.input.call_count, 0)
+        swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                       stdout=None, stderr=None)
+
+
+@nose.with_setup(before_each, after_each)
+def test_restore_confirm_cancel():
+    '''should exit script when user cancels restore confirmation'''
+    config = get_test_config()
+    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
+    with patch('src.local.input') as mock_input:
+        mock_input.return_value = 'n'
+        with nose.assert_raises(Exception):
+            swb.main()
+
+
+@nose.with_setup(before_each, after_each)
+def test_upload_local_backup():
+    '''should upload local backup to remote for restoration'''
+    config = get_test_config()
+    swb.restore(config, TEST_BACKUP_PATH, stdout=None, stderr=None)
+    swb.subprocess.Popen.assert_any_call([
+        'scp', '-P 2222', '~/Backups/mysite.sql.bz2',
+        'myname@mysite.com:~/\'backups/mysite.sql.bz2\''],
+        stdout=None, stderr=None)
+
 
 before_all()

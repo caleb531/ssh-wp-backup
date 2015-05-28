@@ -126,7 +126,8 @@ def transfer_file(ssh_user, ssh_hostname, ssh_port,
             src_path,
             '{}@{}:{}'.format(ssh_user, ssh_hostname, quote_arg(dest_path))
         ]
-    elif action == 'download':
+    else:
+        # Default action is to download file
         scp_args += [
             '{}@{}:{}'.format(ssh_user, ssh_hostname, quote_arg(src_path)),
             dest_path
