@@ -107,7 +107,17 @@ def test_missing_shlex_quote():
     config = get_test_config()
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call(
-        # Ignore preceding arguments. Only check if
+        # Only check if path is quoted (ignore preceding arguments)
         ([mocks.ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
         stdin=mocks.ANY, stdout=None, stderr=None)
     swb.shlex.quote = shlex.quote
+
+
+def test_ssh_error():
+    '''should exit local driver if SSH process returns non-zero exit code'''
+    config = get_test_config()
+    swb.subprocess.Popen.return_value.returncode = 3
+    with mocks.patch('src.local.sys.exit') as mock_exit:
+        swb.back_up(config)
+        mock_exit.assert_any_call(3)
+    swb.subprocess.reset_mock()

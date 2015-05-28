@@ -28,16 +28,16 @@ def mock_os_stat(path):
 
 def mock_module_imports(module):
 
+    module.glob.iglob = MagicMock(return_value=mock_backups)
     module.os = MagicMock()
     module.os.makedirs = MagicMock()
     module.os.remove = MagicMock()
     module.os.rmdir = MagicMock()
     module.os.stat = mock_os_stat
-    module.os.path.expanduser = os.path.expanduser
-    module.os.path.dirname = os.path.dirname
     module.os.path.basename = os.path.basename
+    module.os.path.dirname = os.path.dirname
+    module.os.path.expanduser = os.path.expanduser
     module.subprocess = MagicMock()
-    module.glob.iglob = MagicMock(return_value=mock_backups)
 
     fake_stdout = MagicMock()
     fake_stderr = MagicMock()
