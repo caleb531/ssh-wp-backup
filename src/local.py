@@ -105,13 +105,15 @@ def exec_on_remote(ssh_user, ssh_hostname, ssh_port, action, action_args,
             action  # The action to run on remote
         ] + action_args
 
+        print(ssh_args)
+
         ssh = subprocess.Popen(ssh_args, stdin=remote_script,
                                stdout=stdout, stderr=stderr)
 
         # Wait for command to finish execution
         ssh.wait()
 
-        if ssh.returncode != 0:
+        if ssh.returncode != 0 and isinstance(ssh.returncode, int):
             sys.exit(ssh.returncode)
 
 
@@ -190,7 +192,7 @@ def purge_empty_dirs(dir_path):
                     os.rmdir(expanded_dir_path)
                 except OSError:
                     pass
-        elif dir_path == '/':
+        elif dir_path == '/' or dir_path == '':
             break
 
 
