@@ -1,58 +1,49 @@
 #!/usr/bin/env python3
 
 import configparser
-import glob
-import os.path
-import re
-import time
-from datetime import datetime
-from unittest.mock import Mock, MagicMock, ANY
+import os
+import sys
+from unittest.mock import ANY, patch
 import nose.tools as nose
+import mocks
 import src.local as swb
 
-
-class AttrObject(object):
-    """instantiate an object of attributes"""
-    pass
-
-
-def mock_os_stat(path):
-    date_ymd = re.search('\d+\-\d+\-\d+', path).group(0)
-    stats = AttrObject()
-    stats.st_mtime = datetime.strptime(date_ymd, '%Y-%m-%d')
-    return stats
-
-
-swb.os = MagicMock()
-swb.os.makedirs = MagicMock()
-swb.os.remove = MagicMock()
-swb.os.stat = mock_os_stat
-swb.os.path.expanduser = os.path.expanduser
-swb.os.path.dirname = os.path.dirname
-swb.subprocess = MagicMock()
-
-fake_stdout = MagicMock()
-fake_stderr = MagicMock()
+mocks.mock_module_imports(swb)
+TEST_CONFIG_PATH = 'tests/config/testconfig.ini'
 
 
 @nose.nottest
 def get_test_config():
     config = configparser.RawConfigParser()
-    config.read('tests/config/testconfig.ini')
+    config.read(TEST_CONFIG_PATH)
     return config
+
+
+# Return list of positional arguments (from config) to pass to back_up()
+@nose.nottest
+def get_back_up_args(config):
+    return (config.get('ssh', 'user'),
+            config.get('ssh', 'hostname'),
+            config.get('ssh', 'port'),
+            config.get('paths', 'wordpress'),
+            config.get('paths', 'remote_backup'),
+            config.get('backup', 'compressor'),
+            config.get('paths', 'local_backup'),
+            config.getint('backup', 'max_local_backups'))
+
+
+# Retrieve list of keyword arguments to pass to back_up()
+@nose.nottest
+def get_back_up_kwargs():
+    return {
+        'stdout': None,
+        'stderr': None
+    }
 
 
 @nose.nottest
 def run_back_up(config):
-    swb.back_up(config.get('ssh', 'user'),
-                config.get('ssh', 'hostname'),
-                config.get('ssh', 'port'),
-                config.get('paths', 'wordpress'),
-                config.get('paths', 'remote_backup'),
-                config.get('backup', 'compressor'),
-                config.get('paths', 'local_backup'),
-                config.getint('backup', 'max_local_backups'),
-                stdout=None, stderr=None)
+    swb.back_up(*get_back_up_args(config), **get_back_up_kwargs())
 
 
 def test_config_parser():
@@ -101,16 +92,26 @@ def test_purge_remote_backup():
 def test_purge_oldest_backups():
     '''should purge oldest local backups after download'''
     config = get_test_config()
-    config.set('paths', 'local_backup', '~/Backups/%Y-%m-%d/mysite.sql.bz2')
-    mock_backups = [
-        '~/Backups/2011-02-03/mysite.sql.bz2',
-        '~/Backups/2012-03-04/mysite.sql.bz2',
-        '~/Backups/2013-04-05/mysite.sql.bz2',
-        '~/Backups/2014-05-06/mysite.sql.bz2',
-        '~/Backups/2015-06-07/mysite.sql.bz2'
-    ]
-    swb.glob.iglob = MagicMock(return_value=mock_backups)
+    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
     run_back_up(config)
-    for path in mock_backups[:-3]:
+    for path in mocks.mock_backups[:-3]:
         swb.os.remove.assert_any_call(path)
-    swb.glob.iglob = glob.iglob
+
+
+def test_purge_empty_dirs():
+    '''should purge empty timestamped directories'''
+    config = get_test_config()
+    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    run_back_up(config)
+    for path in mocks.mock_backups[:-3]:
+        swb.os.rmdir.assert_any_call(os.path.dirname(path))
+
+
+@patch('src.local.back_up')
+def test_main(mock_back_up):
+    '''should call back_up() when config path is passed to main()'''
+    config = get_test_config()
+    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
+    swb.main()
+    swb.back_up.assert_any_call(*get_back_up_args(config),
+                                **get_back_up_kwargs())
