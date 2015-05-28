@@ -5,9 +5,9 @@ import os
 import shlex
 import sys
 import nose.tools as nose
-import src.local as swb
 import mocks.local as mocks
-from unittest.mock import ANY, NonCallableMock, patch
+import src.local as swb
+from unittest.mock import ANY, NonCallableMagicMock, patch
 from fixtures.local import before_all, before_each, after_each
 
 
@@ -135,7 +135,7 @@ def test_main():
 @nose.with_setup(before_each, after_each)
 def test_missing_shlex_quote():
     '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
-    swb.shlex = NonCallableMock()
+    swb.shlex = NonCallableMagicMock()
     del swb.shlex.quote
     config = get_test_config()
     swb.back_up(config)

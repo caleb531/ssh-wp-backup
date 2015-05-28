@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 
 
 mock_backups = [
@@ -14,4 +14,4 @@ mock_backups = [
 
 # Mock the os.stat() function
 def mock_os_stat(path):
-    return MagicMock(st_mtime=mock_backups.index(path))
+    return Mock(st_mtime=mock_backups.index(path))

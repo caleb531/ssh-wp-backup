@@ -2,23 +2,23 @@
 
 import glob
 import os.path
-from unittest.mock import MagicMock
 import src.local as swb
 import mocks.local as mocks
+from unittest.mock import Mock, NonCallableMagicMock
 
 
 def before_all():
 
-    swb.glob.iglob = MagicMock(return_value=mocks.mock_backups)
-    swb.os = MagicMock()
-    swb.os.makedirs = MagicMock()
-    swb.os.remove = MagicMock()
-    swb.os.rmdir = MagicMock()
+    swb.glob.iglob = Mock(return_value=mocks.mock_backups)
+    swb.os = NonCallableMagicMock()
+    swb.os.makedirs = Mock()
+    swb.os.remove = Mock()
+    swb.os.rmdir = Mock()
     swb.os.stat = mocks.mock_os_stat
     swb.os.path.basename = os.path.basename
     swb.os.path.dirname = os.path.dirname
     swb.os.path.expanduser = os.path.expanduser
-    swb.subprocess = MagicMock()
+    swb.subprocess = NonCallableMagicMock()
 
 
 def before_each():
