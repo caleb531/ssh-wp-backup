@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import glob
+import os
 import os.path
 import src.local as swb
 import mocks.local as mocks
@@ -11,6 +12,7 @@ def before_all():
 
     swb.glob.iglob = Mock(return_value=mocks.mock_backups)
     swb.os = NonCallableMagicMock()
+    swb.os.devnull = os.devnull
     swb.os.makedirs = Mock()
     swb.os.remove = Mock()
     swb.os.rmdir = Mock()
@@ -29,4 +31,5 @@ def after_each():
     swb.os.makedirs.reset_mock()
     swb.os.remove.reset_mock()
     swb.os.rmdir.reset_mock()
-    swb.subprocess.reset_mock()
+    # reset_mock() doesn't clear return_value or any child attributes
+    swb.subprocess = NonCallableMagicMock()

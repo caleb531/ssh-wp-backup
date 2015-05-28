@@ -7,7 +7,7 @@ import sys
 import nose.tools as nose
 import mocks.local as mocks
 import src.local as swb
-from unittest.mock import ANY, NonCallableMagicMock, patch
+from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
 from fixtures.local import before_all, before_each, after_each
 
 
@@ -56,7 +56,7 @@ def test_create_dir_structure():
     '''should create intermediate directories'''
     config = get_test_config()
     swb.back_up(config)
-    swb.os.makedirs.assert_any_call(os.path.expanduser('~/Backups'))
+    swb.os.makedirs.assert_called_with(os.path.expanduser('~/Backups'))
 
 
 @nose.with_setup(before_each, after_each)
@@ -65,7 +65,7 @@ def test_create_dir_structure_silent_fail():
     config = get_test_config()
     with patch('src.local.os.makedirs', side_effect=OSError):
         swb.back_up(config)
-        swb.os.makedirs.assert_any_call(os.path.expanduser('~/Backups'))
+        swb.os.makedirs.assert_called_with(os.path.expanduser('~/Backups'))
 
 
 @nose.with_setup(before_each, after_each)
@@ -129,7 +129,7 @@ def test_main():
     swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
     with patch('src.local.back_up'):
         swb.main()
-        swb.back_up.assert_any_call(config, stdout=None, stderr=None)
+        swb.back_up.assert_called_with(config, stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
@@ -153,7 +153,20 @@ def test_ssh_error():
     swb.subprocess.Popen.return_value.returncode = 3
     with patch('src.local.sys.exit'):
         swb.back_up(config)
-        swb.sys.exit.assert_any_call(3)
+        swb.sys.exit.assert_called_with(3)
 
+
+@nose.with_setup(before_each, after_each)
+def test_quiet_mode():
+    '''should silence SSH output in quiet mode'''
+    config = get_test_config()
+    swb.sys.argv = [swb.__file__, '-q', TEST_CONFIG_PATH]
+    file_obj = mock_open()
+    devnull = file_obj()
+    with patch('src.local.open', file_obj, create=True):
+        swb.main()
+        file_obj.assert_any_call(os.devnull, 'w')
+        swb.subprocess.Popen.assert_any_call(ANY,
+                                             stdout=devnull, stderr=devnull)
 
 before_all()
