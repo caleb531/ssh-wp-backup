@@ -139,4 +139,18 @@ def test_purge_restored_backup_silent_fail():
         swb.os.remove.assert_called_once_with(os.path.expanduser(TEST_DB_PATH))
 
 
+@nose.with_setup(before_each, after_each)
+def test_process_wait_back_up():
+    '''should wait for each process to finish when backing up'''
+    run_back_up()
+    nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
+
+
+@nose.with_setup(before_each, after_each)
+def test_process_wait_restore():
+    '''should wait for each process to finish when restoring'''
+    run_restore()
+    nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
+
+
 before_all()

@@ -225,12 +225,17 @@ def test_upload_local_backup():
 
 
 @nose.with_setup(before_each, after_each)
-def test_process_wait():
-    '''should wait for each SSH process to finish'''
+def test_process_wait_back_up():
+    '''should wait for each process to finish when backing up'''
     config = get_test_config()
     swb.back_up(config)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 3)
-    swb.subprocess.Popen.return_value.wait.call_count = 0
+
+
+@nose.with_setup(before_each, after_each)
+def test_process_wait_restore():
+    '''should wait for each process to finish when restoring'''
+    config = get_test_config()
     swb.restore(config, TEST_BACKUP_PATH, stdout=None, stderr=None)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
 
