@@ -5,10 +5,9 @@ import os
 import shlex
 import sys
 import nose.tools as nose
-import mocks.local as mocks
 import src.local as swb
 from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
-from fixtures.local import before_all, before_each, after_each
+from fixtures.local import before_all, before_each, after_each, mock_backups
 
 
 TEST_CONFIG_PATH = 'tests/files/config.ini'
@@ -86,7 +85,7 @@ def test_purge_oldest_backups():
     config = get_test_config()
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
     swb.back_up(config)
-    for path in mocks.mock_backups[:-3]:
+    for path in mock_backups[:-3]:
         swb.os.remove.assert_any_call(path)
 
 
@@ -106,7 +105,7 @@ def test_purge_empty_dirs():
     config = get_test_config()
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
     swb.back_up(config)
-    for path in mocks.mock_backups[:-3]:
+    for path in mock_backups[:-3]:
         swb.os.rmdir.assert_any_call(path)
 
 
@@ -117,7 +116,7 @@ def test_keep_nonempty_dirs():
     config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
     with patch('src.local.os.rmdir', side_effect=OSError):
         swb.back_up(config)
-        for path in mocks.mock_backups[:-3]:
+        for path in mock_backups[:-3]:
             swb.os.rmdir.assert_any_call(path)
 
 

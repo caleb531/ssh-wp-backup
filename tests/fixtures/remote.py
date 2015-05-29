@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
 
-import os
 import src.remote as swb
-import mocks.remote as mocks
+import fixtures.shared as shared
 from unittest.mock import Mock, NonCallableMagicMock
 
 
 def before_all():
-
-    swb.os = NonCallableMagicMock()
-    swb.os.makedirs = Mock()
-    swb.os.remove = Mock()
-    swb.subprocess = NonCallableMagicMock()
+    shared.before_all(swb)
+    swb.os.path.getsize = Mock(return_value=54321)
 
 
 def before_each():
-    pass
+    shared.before_each(swb)
 
 
 def after_each():
-    swb.os.makedirs.reset_mock()
-    swb.os.remove.reset_mock()
-    swb.subprocess = NonCallableMagicMock()
+    shared.after_each(swb)
