@@ -3,6 +3,9 @@
 *Copyright 2015 Caleb Evans*  
 *Released under the MIT license*
 
+[![Build Status](https://travis-ci.org/caleb531/ssh-wp-backup.svg?branch=develop)](https://travis-ci.org/caleb531/ssh-wp-backup)
+[![Coverage Status](https://coveralls.io/repos/caleb531/ssh-wp-backup/badge.svg?branch=develop)](https://coveralls.io/r/caleb531/ssh-wp-backup?branch=develop)
+
 SSH WordPress Backup is a command line utility for creating and restoring local
 backups of a remote WordPress database via SSH.
 
