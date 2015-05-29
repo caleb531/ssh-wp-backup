@@ -87,9 +87,9 @@ def back_up(wordpress_path, backup_compressor, backup_path):
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    # dump_db(db_info['name'], db_info['host'],
-    #         db_info['user'], db_info['password'],
-    #         backup_compressor, backup_path)
+    dump_db(db_info['name'], db_info['host'],
+            db_info['user'], db_info['password'],
+            backup_compressor, backup_path)
     verify_backup_integrity(backup_path)
 
 

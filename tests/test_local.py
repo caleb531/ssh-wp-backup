@@ -124,10 +124,11 @@ def test_keep_nonempty_dirs():
 def test_main_back_up():
     '''should call back_up() when config path is passed to main()'''
     config = get_test_config()
-    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH]
-    with patch('src.local.back_up'):
-        swb.main()
-        swb.back_up.assert_called_with(config, stdout=None, stderr=None)
+    args = [swb.__file__, TEST_CONFIG_PATH]
+    with patch('src.local.sys.argv', args, create=True):
+        with patch('src.local.back_up'):
+            swb.main()
+            swb.back_up.assert_called_with(config, stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
@@ -158,52 +159,55 @@ def test_ssh_error():
 def test_quiet_mode():
     '''should silence SSH output in quiet mode'''
     config = get_test_config()
-    swb.sys.argv = [swb.__file__, '-q', TEST_CONFIG_PATH]
-    file_obj = mock_open()
-    devnull = file_obj()
-    with patch('src.local.open', file_obj, create=True):
-        swb.main()
-        file_obj.assert_any_call(os.devnull, 'w')
-        swb.subprocess.Popen.assert_any_call(ANY,
-                                             stdout=devnull, stderr=devnull)
+    args = [swb.__file__, '-q', TEST_CONFIG_PATH]
+    with patch('src.local.sys.argv', args, create=True):
+        file_obj = mock_open()
+        devnull = file_obj()
+        with patch('src.local.open', file_obj, create=True):
+            swb.main()
+            file_obj.assert_any_call(os.devnull, 'w')
+            swb.subprocess.Popen.assert_any_call(ANY, stdout=devnull,
+                                                 stderr=devnull)
 
 
 @nose.with_setup(before_each, after_each)
 def test_main_restore():
     '''should call restore() when config path is passed to main()'''
     config = get_test_config()
-    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
-    with patch('src.local.restore'):
-        swb.main()
-        swb.input.assert_called_with(ANY)
-        swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
-                                       stdout=None, stderr=None)
+    args = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
+    with patch('src.local.sys.argv', args, create=True):
+        with patch('src.local.restore'):
+            swb.main()
+            swb.input.assert_called_with(ANY)
+            swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                           stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
 def test_force_mode():
     '''should bypass restore confirmation in force mode'''
     config = get_test_config()
-    swb.sys.argv = [swb.__file__, '-f', TEST_CONFIG_PATH, '-r',
-                    TEST_BACKUP_PATH]
-    with patch('src.local.restore'):
-        swb.main()
-        nose.assert_equal(swb.input.call_count, 0)
-        swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
-                                       stdout=None, stderr=None)
+    args = [swb.__file__, '-f', TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
+    with patch('src.local.sys.argv', args, create=True):
+        with patch('src.local.restore'):
+            swb.main()
+            nose.assert_equal(swb.input.call_count, 0)
+            swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                           stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
 def test_restore_confirm_cancel():
     '''should exit script when user cancels restore confirmation'''
     config = get_test_config()
-    swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
-    with patch('src.local.input') as mock_input:
-        responses = ['n', 'N', ' n ', '']
-        for response in responses:
-            mock_input.return_value = response
-            with nose.assert_raises(Exception):
-                swb.main()
+    args = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
+    with patch('src.local.sys.argv', args, create=True):
+        with patch('src.local.input') as mock_input:
+            responses = ['n', 'N', ' n ', '']
+            for response in responses:
+                mock_input.return_value = response
+                with nose.assert_raises(Exception):
+                    swb.main()
 
 
 @nose.with_setup(before_each, after_each)

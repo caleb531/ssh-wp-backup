@@ -2,7 +2,12 @@
 
 import src.remote as swb
 import fixtures.shared as shared
-from unittest.mock import Mock, NonCallableMagicMock
+from unittest.mock import Mock, mock_open, NonCallableMagicMock
+
+
+TEST_WP_CONFIG_PATH = 'tests/files/wp-config.php'
+with open(TEST_WP_CONFIG_PATH) as wp_config:
+    TEST_WP_CONFIG_CONTENTS = wp_config.read()
 
 
 def before_all():
@@ -12,6 +17,8 @@ def before_all():
 
 def before_each():
     shared.before_each(swb)
+    mock_open_inst = mock_open(read_data=TEST_WP_CONFIG_CONTENTS)
+    swb.open = mock_open_inst
 
 
 def after_each():

@@ -3,11 +3,18 @@
 import configparser
 import os
 import shlex
+import subprocess
 import sys
 import nose.tools as nose
 import src.remote as swb
 from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
 from fixtures.remote import before_all, before_each, after_each
+
+
+@nose.nottest
+def run_back_up(wordpress_path='~/mysite', compressor='bzip2',
+                backup_path='~/backups/mysite.sql.bz2'):
+    swb.back_up(wordpress_path, compressor, backup_path)
 
 
 @nose.with_setup(before_each, after_each)
@@ -40,8 +47,26 @@ def test_route_purge_backup():
 @nose.with_setup(before_each, after_each)
 def test_create_dir_structure():
     '''should create intermediate directories'''
-    swb.back_up('~/mysite', 'bzip2', '~/backups/mysite.sql.bz2')
+    run_back_up()
     swb.os.makedirs.assert_called_with(os.path.expanduser('~/backups'))
+
+
+@nose.with_setup(before_each, after_each)
+def test_create_dir_structure_silent_fail():
+    '''should fail silently if intermediate directories already exist'''
+    with patch('src.remote.os.makedirs', side_effect=OSError):
+        run_back_up()
+        swb.os.makedirs.assert_called_with(os.path.expanduser('~/backups'))
+
+
+@nose.with_setup(before_each, after_each)
+def test_dump_db():
+    '''should dump database'''
+    with patch('src.remote.os.makedirs', side_effect=OSError):
+        run_back_up()
+        swb.subprocess.Popen.assert_any_call([
+            'mysqldump', 'mydb', '-h', 'myhost', '-u', 'myname',
+            '-pmypassword', '--add-drop-table'], stdout=subprocess.PIPE)
 
 
 before_all()
