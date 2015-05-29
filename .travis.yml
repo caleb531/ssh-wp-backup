@@ -1,0 +1,13 @@
+# Travis CI Configuration
+
+language: python
+python:
+  - "3.4"
+install:
+  - pip install -r requirements.txt
+  - pip install coveralls
+script:
+  - nosetests
+  - nosetests --with-coverage --cover-erase
+after_success:
+  - coveralls

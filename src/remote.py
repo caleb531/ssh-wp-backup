@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import os.path
 import re
 import shlex
 import subprocess
@@ -82,6 +83,7 @@ def purge_downloaded_backup(backup_path):
 
 def back_up(wordpress_path, backup_compressor, backup_path):
 
+    backup_path = os.path.expanduser(backup_path)
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
@@ -135,6 +137,7 @@ def purge_restored_backup(backup_path, db_path):
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path, backup_decompressor):
 
+    backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
     decompress_backup(backup_path, backup_decompressor)
 
@@ -152,12 +155,13 @@ def main():
     # Parse action to take as well as the action's respective arguments
     action, *action_args = sys.argv[1:]
 
-    if action == 'back-up':
-        back_up(*action_args)
-    elif action == 'restore':
+    if action == 'restore':
         restore(*action_args)
     elif action == 'purge-backup':
         purge_downloaded_backup(*action_args)
+    else:
+        # Default action is to back up
+        back_up(*action_args)
 
 if __name__ == '__main__':
     main()
