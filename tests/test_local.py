@@ -134,15 +134,15 @@ def test_main_back_up():
 @nose.with_setup(before_each, after_each)
 def test_missing_shlex_quote():
     '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
-    swb.shlex = NonCallableMagicMock()
-    del swb.shlex.quote
-    config = get_test_config()
-    swb.back_up(config)
-    swb.subprocess.Popen.assert_any_call(
-        # Only check if path is quoted (ignore preceding arguments)
-        ([ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
-        stdin=ANY, stdout=None, stderr=None)
-    swb.shlex.quote = shlex.quote
+    with patch('src.local.shlex'):
+        del swb.shlex.quote
+        config = get_test_config()
+        swb.back_up(config)
+        swb.subprocess.Popen.assert_any_call(
+            # Only check if path is quoted (ignore preceding arguments)
+            ([ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
+            stdin=ANY, stdout=None, stderr=None)
+        swb.shlex.quote = shlex.quote
 
 
 @nose.with_setup(before_each, after_each)
@@ -200,9 +200,11 @@ def test_restore_confirm_cancel():
     config = get_test_config()
     swb.sys.argv = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
     with patch('src.local.input') as mock_input:
-        mock_input.return_value = 'n'
-        with nose.assert_raises(Exception):
-            swb.main()
+        responses = ['n', 'N', ' n ', '']
+        for response in responses:
+            mock_input.return_value = response
+            with nose.assert_raises(Exception):
+                swb.main()
 
 
 @nose.with_setup(before_each, after_each)
@@ -214,6 +216,17 @@ def test_upload_local_backup():
         'scp', '-P 2222', '~/Backups/mysite.sql.bz2',
         'myname@mysite.com:~/\'backups/mysite.sql.bz2\''],
         stdout=None, stderr=None)
+
+
+@nose.with_setup(before_each, after_each)
+def test_process_wait():
+    '''should wait for each SSH process to finish'''
+    config = get_test_config()
+    swb.back_up(config, stdout=None, stderr=None)
+    nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 3)
+    swb.subprocess.Popen.return_value.wait.call_count = 0
+    swb.restore(config, TEST_BACKUP_PATH, stdout=None, stderr=None)
+    nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
 
 
 before_all()
