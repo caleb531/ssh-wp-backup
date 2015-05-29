@@ -225,7 +225,7 @@ def test_upload_local_backup():
 def test_process_wait():
     '''should wait for each SSH process to finish'''
     config = get_test_config()
-    swb.back_up(config, stdout=None, stderr=None)
+    swb.back_up(config)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 3)
     swb.subprocess.Popen.return_value.wait.call_count = 0
     swb.restore(config, TEST_BACKUP_PATH, stdout=None, stderr=None)

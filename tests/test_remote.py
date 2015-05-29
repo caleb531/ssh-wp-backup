@@ -62,11 +62,26 @@ def test_create_dir_structure_silent_fail():
 @nose.with_setup(before_each, after_each)
 def test_dump_db():
     '''should dump database'''
-    with patch('src.remote.os.makedirs', side_effect=OSError):
-        run_back_up()
-        swb.subprocess.Popen.assert_any_call([
-            'mysqldump', 'mydb', '-h', 'myhost', '-u', 'myname',
-            '-pmypassword', '--add-drop-table'], stdout=subprocess.PIPE)
+    run_back_up()
+    swb.subprocess.Popen.assert_any_call([
+        'mysqldump', 'mydb', '-h', 'myhost', '-u', 'myname',
+        '-pmypassword', '--add-drop-table'], stdout=subprocess.PIPE)
+
+
+@nose.with_setup(before_each, after_each)
+def test_corrupted_backup():
+    '''should raise OSError if backup is corrupted'''
+    with patch('src.remote.os.path.getsize', return_value=20):
+        with nose.assert_raises(OSError):
+            run_back_up()
+
+
+@nose.with_setup(before_each, after_each)
+def test_purge_downloaded_backup():
+    '''should purge remote backup after download'''
+    backup_path = '~/backups/mysite.sql.bz2'
+    swb.purge_downloaded_backup(backup_path)
+    swb.os.remove.assert_called_once_with(backup_path)
 
 
 before_all()
