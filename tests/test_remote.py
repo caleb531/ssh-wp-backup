@@ -11,10 +11,25 @@ from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
 from fixtures.remote import before_all, before_each, after_each
 
 
+TEST_WP_PATH = '~/mysite'
+TEST_BACKUP_COMPRESSOR = 'bzip2'
+TEST_BACKUP_DECOMPRESSOR = '{} -d'.format(TEST_BACKUP_COMPRESSOR)
+TEST_BACKUP_PATH = '~/backups/mysite.sql.bz2'
+TEST_DB_PATH = TEST_BACKUP_PATH.replace('.bz2', '')
+
+
 @nose.nottest
-def run_back_up(wordpress_path='~/mysite', compressor='bzip2',
-                backup_path='~/backups/mysite.sql.bz2'):
+def run_back_up(wordpress_path=TEST_WP_PATH,
+                compressor=TEST_BACKUP_COMPRESSOR,
+                backup_path=TEST_BACKUP_PATH):
     swb.back_up(wordpress_path, compressor, backup_path)
+
+
+@nose.nottest
+def run_restore(wordpress_path=TEST_WP_PATH,
+                backup_path=TEST_BACKUP_PATH,
+                backup_decompressor=TEST_BACKUP_DECOMPRESSOR):
+    swb.restore(wordpress_path, backup_path, backup_decompressor)
 
 
 @nose.with_setup(before_each, after_each)
@@ -79,9 +94,49 @@ def test_corrupted_backup():
 @nose.with_setup(before_each, after_each)
 def test_purge_downloaded_backup():
     '''should purge remote backup after download'''
-    backup_path = '~/backups/mysite.sql.bz2'
-    swb.purge_downloaded_backup(backup_path)
-    swb.os.remove.assert_called_once_with(backup_path)
+    swb.purge_downloaded_backup(TEST_BACKUP_PATH)
+    swb.os.remove.assert_called_once_with(TEST_BACKUP_PATH)
+
+
+@nose.with_setup(before_each, after_each)
+def test_restore_verify():
+    '''should verify backup on restore'''
+    run_restore()
+    swb.os.path.getsize.assert_called_once_with(
+        os.path.expanduser(TEST_BACKUP_PATH))
+
+
+@nose.with_setup(before_each, after_each)
+def test_decompress_backup():
+    '''should decompress backup on restore'''
+    run_restore()
+    swb.subprocess.Popen.assert_any_call(['bzip2', '-d', os.path.expanduser(
+        TEST_BACKUP_PATH)])
+
+
+@nose.with_setup(before_each, after_each)
+def test_replace_db():
+    '''should replace database with decompressed revision'''
+    run_restore()
+    swb.subprocess.Popen.assert_any_call([
+        'mysql', 'mydb', '-h', 'myhost', '-u', 'myname',
+        '-pmypassword'], stdin=swb.open())
+
+
+@nose.with_setup(before_each, after_each)
+def test_purge_restored_backup():
+    '''should purge remote backup/database after restore'''
+    run_restore()
+    swb.os.remove.assert_any_call(os.path.expanduser(TEST_BACKUP_PATH))
+    swb.os.remove.assert_any_call(os.path.expanduser(TEST_DB_PATH))
+
+
+@nose.with_setup(before_each, after_each)
+def test_purge_restored_backup_silent_fail():
+    '''should fail silently if remote files do not exist after restore'''
+    with patch('src.remote.os.remove', side_effect=OSError):
+        run_restore()
+        swb.os.remove.assert_called_once_with(os.path.expanduser(TEST_DB_PATH))
 
 
 before_all()

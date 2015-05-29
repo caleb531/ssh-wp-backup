@@ -12,6 +12,7 @@ from fixtures.local import before_all, before_each, after_each, mock_backups
 
 TEST_CONFIG_PATH = 'tests/files/config.ini'
 TEST_BACKUP_PATH = '~/Backups/mysite.sql.bz2'
+TEST_BACKUP_PATH_TIMESTAMPED = '~/Backups/%Y/%m/%d/mysite.sql.bz2'
 
 
 @nose.nottest
@@ -47,7 +48,7 @@ def test_download_remote_backup():
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call([
         'scp', '-P 2222', 'myname@mysite.com:~/\'backups/mysite.sql.bz2\'',
-        os.path.expanduser('~/Backups/mysite.sql.bz2')],
+        os.path.expanduser(TEST_BACKUP_PATH)],
         stdout=None, stderr=None)
 
 
@@ -56,7 +57,8 @@ def test_create_dir_structure():
     '''should create intermediate directories'''
     config = get_test_config()
     swb.back_up(config)
-    swb.os.makedirs.assert_called_with(os.path.expanduser('~/Backups'))
+    swb.os.makedirs.assert_called_with(
+        os.path.expanduser(os.path.dirname(TEST_BACKUP_PATH)))
 
 
 @nose.with_setup(before_each, after_each)
@@ -65,7 +67,8 @@ def test_create_dir_structure_silent_fail():
     config = get_test_config()
     with patch('src.local.os.makedirs', side_effect=OSError):
         swb.back_up(config)
-        swb.os.makedirs.assert_called_with(os.path.expanduser('~/Backups'))
+        swb.os.makedirs.assert_called_with(
+            os.path.expanduser(os.path.dirname(TEST_BACKUP_PATH)))
 
 
 @nose.with_setup(before_each, after_each)
@@ -83,7 +86,7 @@ def test_purge_remote_backup():
 def test_purge_oldest_backups():
     '''should purge oldest local backups after download'''
     config = get_test_config()
-    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
     for path in mock_backups[:-3]:
         swb.os.remove.assert_any_call(path)
@@ -93,7 +96,7 @@ def test_purge_oldest_backups():
 def test_null_max_local_backups():
     '''should keep all backups if max_local_backups is not set'''
     config = get_test_config()
-    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
     config.remove_option('backup', 'max_local_backups')
     swb.back_up(config)
     nose.assert_equal(swb.os.remove.call_count, 0)
@@ -103,7 +106,7 @@ def test_null_max_local_backups():
 def test_purge_empty_dirs():
     '''should purge empty timestamped directories'''
     config = get_test_config()
-    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
     for path in mock_backups[:-3]:
         swb.os.rmdir.assert_any_call(path)
@@ -113,7 +116,7 @@ def test_purge_empty_dirs():
 def test_keep_nonempty_dirs():
     '''should not purge nonempty timestamped directories'''
     config = get_test_config()
-    config.set('paths', 'local_backup', '~/Backups/%Y/%m/%d/mysite.sql.bz2')
+    config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
     with patch('src.local.os.rmdir', side_effect=OSError):
         swb.back_up(config)
         for path in mock_backups[:-3]:
@@ -216,7 +219,7 @@ def test_upload_local_backup():
     config = get_test_config()
     swb.restore(config, TEST_BACKUP_PATH, stdout=None, stderr=None)
     swb.subprocess.Popen.assert_any_call([
-        'scp', '-P 2222', '~/Backups/mysite.sql.bz2',
+        'scp', '-P 2222', TEST_BACKUP_PATH,
         'myname@mysite.com:~/\'backups/mysite.sql.bz2\''],
         stdout=None, stderr=None)
 

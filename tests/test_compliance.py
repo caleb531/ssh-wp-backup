@@ -7,7 +7,6 @@ import pep8
 
 def test_pep8():
     '''all Python files should comply with PEP 8'''
-    print('YDFSDFSFDS')
     for subdir_path, subdir_names, file_names in os.walk('.'):
         if '.git' in subdir_names:
             subdir_names.remove('.git')

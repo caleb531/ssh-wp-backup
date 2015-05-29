@@ -23,3 +23,4 @@ def before_each():
 
 def after_each():
     shared.after_each(swb)
+    swb.os.path.getsize.reset_mock()

@@ -155,12 +155,13 @@ def main():
     # Parse action to take as well as the action's respective arguments
     action, *action_args = sys.argv[1:]
 
-    if action == 'back-up':
-        back_up(*action_args)
-    elif action == 'restore':
+    if action == 'restore':
         restore(*action_args)
     elif action == 'purge-backup':
         purge_downloaded_backup(*action_args)
+    else:
+        # Default action is to back up
+        back_up(*action_args)
 
 if __name__ == '__main__':
     main()
