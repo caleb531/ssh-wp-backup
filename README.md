@@ -1,16 +1,13 @@
-# SSH WordPress Backup (beta)
+# SSH WordPress Backup
 
 *Copyright 2015 Caleb Evans*  
 *Released under the MIT license*
 
-[![Build Status](https://travis-ci.org/caleb531/ssh-wp-backup.svg?branch=develop)](https://travis-ci.org/caleb531/ssh-wp-backup)
-[![Coverage Status](https://coveralls.io/repos/caleb531/ssh-wp-backup/badge.svg?branch=develop)](https://coveralls.io/r/caleb531/ssh-wp-backup?branch=develop)
+[![Build Status](https://travis-ci.org/caleb531/ssh-wp-backup.svg?branch=master)](https://travis-ci.org/caleb531/ssh-wp-backup)
+[![Coverage Status](https://coveralls.io/repos/caleb531/ssh-wp-backup/badge.svg?branch=master)](https://coveralls.io/r/caleb531/ssh-wp-backup?branch=master)
 
 SSH WordPress Backup is a command line utility for creating and restoring local
 backups of a remote WordPress database via SSH.
-
-Please note that this utility is under active development, and therefore is
-subject to frequent and sudden API changes. Use at your own risk.
 
 ## Getting Started
 
@@ -67,7 +64,7 @@ properties marked as optional):
 	- if you specify this option, you must ensure that the file extensions for
 		`paths.remote_backup` and `paths.local_backup` match that of the chosen
 		compressor
-	- *e.g.* `gzip`, `bzip2`
+	- *e.g.* `gzip`, `bzip2`, `gzip --best`, `bzip -v`
 - `decompressor`: the shell command used for decompressing the backup
 	when restoring from backup
 	- if this option is present, the `compressor` option must also be present
