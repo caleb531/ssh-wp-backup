@@ -69,7 +69,7 @@ def test_create_dir_structure():
 @nose.with_setup(before_each, after_each)
 def test_create_dir_structure_silent_fail():
     '''should fail silently if intermediate directories already exist'''
-    with patch('src.remote.os.makedirs', side_effect=FileExistsError):
+    with patch('src.remote.os.makedirs', side_effect=OSError):
         run_back_up()
         swb.os.makedirs.assert_called_with(os.path.expanduser('~/backups'))
 
@@ -134,7 +134,7 @@ def test_purge_restored_backup():
 @nose.with_setup(before_each, after_each)
 def test_purge_restored_backup_silent_fail():
     '''should fail silently if remote files do not exist after restore'''
-    with patch('src.remote.os.remove', side_effect=FileNotFoundError):
+    with patch('src.remote.os.remove', side_effect=OSError):
         run_restore()
         swb.os.remove.assert_called_once_with(os.path.expanduser(TEST_DB_PATH))
 

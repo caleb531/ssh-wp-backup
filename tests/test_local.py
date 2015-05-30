@@ -65,7 +65,7 @@ def test_create_dir_structure():
 def test_create_dir_structure_silent_fail():
     '''should fail silently if intermediate directories already exist'''
     config = get_test_config()
-    with patch('src.local.os.makedirs', side_effect=FileExistsError):
+    with patch('src.local.os.makedirs', side_effect=OSError):
         swb.back_up(config)
         swb.os.makedirs.assert_called_with(
             os.path.expanduser(os.path.dirname(TEST_BACKUP_PATH)))
@@ -117,7 +117,7 @@ def test_keep_nonempty_dirs():
     '''should not purge nonempty timestamped directories'''
     config = get_test_config()
     config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
-    with patch('src.local.os.rmdir', side_effect=FileNotFoundError):
+    with patch('src.local.os.rmdir', side_effect=OSError):
         swb.back_up(config)
         for path in mock_backups[:-3]:
             swb.os.rmdir.assert_any_call(path)

@@ -21,7 +21,7 @@ def create_dir_structure(backup_path):
 
     try:
         os.makedirs(os.path.dirname(backup_path))
-    except FileExistsError:
+    except OSError:
         pass
 
 
