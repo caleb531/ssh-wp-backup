@@ -62,7 +62,7 @@ def create_dir_structure(path):
 
     try:
         os.makedirs(os.path.dirname(path))
-    except OSError:
+    except FileExistsError:
         pass
 
 
