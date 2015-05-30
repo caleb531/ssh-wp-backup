@@ -1,3 +1,5 @@
 nose
+rednose
 coverage
 pep8
+invoke
