@@ -62,13 +62,13 @@ def test_create_dir_structure():
 
 
 @nose.with_setup(before_each, after_each)
-def test_create_dir_structure_silent_fail():
+@patch('src.local.os.makedirs', side_effect=OSError)
+def test_create_dir_structure_silent_fail(makedirs):
     '''should fail silently if intermediate directories already exist'''
     config = get_test_config()
-    with patch('src.local.os.makedirs', side_effect=OSError):
-        swb.back_up(config)
-        swb.os.makedirs.assert_called_with(
-            os.path.expanduser(os.path.dirname(TEST_BACKUP_PATH)))
+    swb.back_up(config)
+    makedirs.assert_called_with(os.path.expanduser(
+        os.path.dirname(TEST_BACKUP_PATH)))
 
 
 @nose.with_setup(before_each, after_each)
@@ -113,49 +113,48 @@ def test_purge_empty_dirs():
 
 
 @nose.with_setup(before_each, after_each)
-def test_keep_nonempty_dirs():
+@patch('src.local.os.rmdir', side_effect=OSError)
+def test_keep_nonempty_dirs(rmdir):
     '''should not purge nonempty timestamped directories'''
     config = get_test_config()
     config.set('paths', 'local_backup', TEST_BACKUP_PATH_TIMESTAMPED)
-    with patch('src.local.os.rmdir', side_effect=OSError):
-        swb.back_up(config)
-        for path in mock_backups[:-3]:
-            swb.os.rmdir.assert_any_call(path)
+    swb.back_up(config)
+    for path in mock_backups[:-3]:
+        rmdir.assert_any_call(path)
 
 
 @nose.with_setup(before_each, after_each)
-def test_main_back_up():
+@patch('src.local.back_up')
+def test_main_back_up(back_up):
     '''should call back_up() when config path is passed to main()'''
     config = get_test_config()
     args = [swb.__file__, TEST_CONFIG_PATH]
     with patch('src.local.sys.argv', args, create=True):
-        with patch('src.local.back_up'):
-            swb.main()
-            swb.back_up.assert_called_with(config, stdout=None, stderr=None)
+        swb.main()
+        back_up.assert_called_with(config, stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
-def test_missing_shlex_quote():
+@patch('src.local.shlex')
+def test_missing_shlex_quote(shlex):
     '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
-    with patch('src.local.shlex'):
-        del swb.shlex.quote
-        config = get_test_config()
-        swb.back_up(config)
-        swb.subprocess.Popen.assert_any_call(
-            # Only check if path is quoted (ignore preceding arguments)
-            ([ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
-            stdin=ANY, stdout=None, stderr=None)
-        swb.shlex.quote = shlex.quote
+    del shlex.quote
+    config = get_test_config()
+    swb.back_up(config)
+    swb.subprocess.Popen.assert_any_call(
+        # Only check if path is quoted (ignore preceding arguments)
+        ([ANY] * 6) + ['~/\'backups/mysite.sql.bz2\''],
+        stdin=ANY, stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
-def test_ssh_error():
+@patch('src.local.sys.exit')
+def test_ssh_error(exit):
     '''should exit if SSH process returns non-zero exit code'''
     config = get_test_config()
     swb.subprocess.Popen.return_value.returncode = 3
-    with patch('src.local.sys.exit'):
-        swb.back_up(config)
-        swb.sys.exit.assert_called_with(3)
+    swb.back_up(config)
+    exit.assert_called_with(3)
 
 
 @nose.with_setup(before_each, after_each)
@@ -174,43 +173,43 @@ def test_quiet_mode():
 
 
 @nose.with_setup(before_each, after_each)
-def test_main_restore():
+@patch('src.local.restore')
+def test_main_restore(restore):
     '''should call restore() when config path is passed to main()'''
     config = get_test_config()
     args = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
     with patch('src.local.sys.argv', args, create=True):
-        with patch('src.local.restore'):
-            swb.main()
-            swb.input.assert_called_with(ANY)
-            swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
-                                           stdout=None, stderr=None)
+        swb.main()
+        swb.input.assert_called_with(ANY)
+        restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                   stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
-def test_force_mode():
+@patch('src.local.restore')
+def test_force_mode(restore):
     '''should bypass restore confirmation in force mode'''
     config = get_test_config()
     args = [swb.__file__, '-f', TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
     with patch('src.local.sys.argv', args, create=True):
-        with patch('src.local.restore'):
-            swb.main()
-            nose.assert_equal(swb.input.call_count, 0)
-            swb.restore.assert_called_with(config, TEST_BACKUP_PATH,
-                                           stdout=None, stderr=None)
+        swb.main()
+        nose.assert_equal(swb.input.call_count, 0)
+        restore.assert_called_with(config, TEST_BACKUP_PATH,
+                                   stdout=None, stderr=None)
 
 
 @nose.with_setup(before_each, after_each)
-def test_restore_confirm_cancel():
+@patch('src.local.input')
+def test_restore_confirm_cancel(input):
     '''should exit script when user cancels restore confirmation'''
     config = get_test_config()
     args = [swb.__file__, TEST_CONFIG_PATH, '-r', TEST_BACKUP_PATH]
     with patch('src.local.sys.argv', args, create=True):
-        with patch('src.local.input') as mock_input:
-            responses = ['n', 'N', ' n ', '']
-            for response in responses:
-                mock_input.return_value = response
-                with nose.assert_raises(Exception):
-                    swb.main()
+        responses = ['n', 'N', ' n ', '']
+        for response in responses:
+            input.return_value = response
+            with nose.assert_raises(Exception):
+                swb.main()
 
 
 @nose.with_setup(before_each, after_each)
