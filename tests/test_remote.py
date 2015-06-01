@@ -33,30 +33,30 @@ def run_restore(wordpress_path=TEST_WP_PATH,
 
 
 @nose.with_setup(before_each, after_each)
-def test_route_back_up():
+@patch('src.remote.back_up')
+def test_route_back_up(back_up):
     '''should call back_up() with args if respective action is passed'''
-    with patch('src.remote.back_up'):
-        swb.sys.argv = [swb.__file__, 'back-up', 'a', 'b', 'c']
-        swb.main()
-        swb.back_up.assert_called_once_with('a', 'b', 'c')
+    swb.sys.argv = [swb.__file__, 'back-up', 'a', 'b', 'c']
+    swb.main()
+    back_up.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(before_each, after_each)
-def test_route_restore():
+@patch('src.remote.restore')
+def test_route_restore(restore):
     '''should call restore() with args if respective action is passed'''
-    with patch('src.remote.restore'):
-        swb.sys.argv = [swb.__file__, 'restore', 'a', 'b', 'c']
-        swb.main()
-        swb.restore.assert_called_once_with('a', 'b', 'c')
+    swb.sys.argv = [swb.__file__, 'restore', 'a', 'b', 'c']
+    swb.main()
+    restore.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(before_each, after_each)
-def test_route_purge_backup():
+@patch('src.remote.purge_downloaded_backup')
+def test_route_purge_backup(purge):
     '''should call purge_backup() with args if respective action is passed'''
-    with patch('src.remote.purge_downloaded_backup'):
-        swb.sys.argv = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
-        swb.main()
-        swb.purge_downloaded_backup.assert_called_once_with('a', 'b', 'c')
+    swb.sys.argv = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
+    swb.main()
+    purge.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(before_each, after_each)
@@ -66,12 +66,12 @@ def test_create_dir_structure():
     swb.os.makedirs.assert_called_with(os.path.expanduser('~/backups'))
 
 
+@patch('src.remote.os.makedirs', side_effect=OSError)
 @nose.with_setup(before_each, after_each)
-def test_create_dir_structure_silent_fail():
+def test_create_dir_structure_silent_fail(makedirs):
     '''should fail silently if intermediate directories already exist'''
-    with patch('src.remote.os.makedirs', side_effect=OSError):
-        run_back_up()
-        swb.os.makedirs.assert_called_with(os.path.expanduser('~/backups'))
+    run_back_up()
+    makedirs.assert_called_with(os.path.expanduser('~/backups'))
 
 
 @nose.with_setup(before_each, after_each)
@@ -84,11 +84,11 @@ def test_dump_db():
 
 
 @nose.with_setup(before_each, after_each)
-def test_corrupted_backup():
+@patch('src.remote.os.path.getsize', return_value=20)
+def test_corrupted_backup(getsize):
     '''should raise OSError if backup is corrupted'''
-    with patch('src.remote.os.path.getsize', return_value=20):
-        with nose.assert_raises(OSError):
-            run_back_up()
+    with nose.assert_raises(OSError):
+        run_back_up()
 
 
 @nose.with_setup(before_each, after_each)
@@ -132,11 +132,11 @@ def test_purge_restored_backup():
 
 
 @nose.with_setup(before_each, after_each)
-def test_purge_restored_backup_silent_fail():
+@patch('src.remote.os.remove', side_effect=OSError)
+def test_purge_restored_backup_silent_fail(remove):
     '''should fail silently if remote files do not exist after restore'''
-    with patch('src.remote.os.remove', side_effect=OSError):
-        run_restore()
-        swb.os.remove.assert_called_once_with(os.path.expanduser(TEST_DB_PATH))
+    run_restore()
+    remove.assert_called_once_with(os.path.expanduser(TEST_DB_PATH))
 
 
 @nose.with_setup(before_each, after_each)
