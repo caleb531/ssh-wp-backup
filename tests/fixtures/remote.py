@@ -2,7 +2,7 @@
 
 import src.remote as swb
 import fixtures.shared as shared
-from unittest.mock import Mock, mock_open, NonCallableMagicMock
+from unittest.mock import Mock, mock_open
 
 
 TEST_WP_CONFIG_PATH = 'tests/files/wp-config.php'

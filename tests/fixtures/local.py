@@ -3,7 +3,7 @@
 import glob
 import src.local as swb
 import fixtures.shared as shared
-from unittest.mock import Mock, NonCallableMagicMock
+from unittest.mock import Mock
 
 
 mock_backups = [

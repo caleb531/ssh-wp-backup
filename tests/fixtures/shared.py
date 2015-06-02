@@ -3,12 +3,12 @@
 import os
 import os.path
 import subprocess
-from unittest.mock import Mock, mock_open, NonCallableMagicMock
+from unittest.mock import Mock, mock_open, NonCallableMock
 
 
 def before_all(module):
 
-    module.os = NonCallableMagicMock()
+    module.os = NonCallableMock()
     module.os.devnull = os.devnull
     module.os.makedirs = Mock()
     module.os.remove = Mock()
@@ -21,7 +21,7 @@ def before_all(module):
 
 def before_each(module):
     # reset_mock() doesn't clear return_value or any child attributes
-    module.subprocess = NonCallableMagicMock(PIPE=subprocess.PIPE)
+    module.subprocess.Popen = Mock(return_value=Mock(returncode=0))
 
 
 def after_each(module):
