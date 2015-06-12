@@ -14,23 +14,18 @@ mock_backups = [
 ]
 
 
-original_stat = os.stat
-
-
 def mock_stat(path):
     if path in mock_backups:
         return Mock(st_mtime=mock_backups.index(path))
-    else:
-        return original_stat(path)
 
 
-patch_makedirs = patch('src.local.os.makedirs').start()
+patch_makedirs = patch('src.local.os.makedirs')
 patch_remove = patch('src.local.os.remove')
 patch_rmdir = patch('src.local.os.rmdir')
-patch_stat = patch('src.local.os.stat', new=mock_stat)
-patch_iglob = patch('src.local.glob.iglob', return_value=mock_backups)
-src.local.input = input
-patch_input = patch('src.local.input')
+patch_stat = patch('src.local.os.stat', mock_stat)
+patch_iglob = patch('src.local.glob.iglob',
+                    return_value=mock_backups)
+patch_input = patch('src.local.input', create=True)
 patch_popen = patch('src.local.subprocess.Popen',
                     return_value=Mock(returncode=0))
 
