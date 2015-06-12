@@ -2,59 +2,57 @@
 
 import configparser
 import os
-import shlex
 import subprocess
 import sys
 import nose.tools as nose
 import src.remote as swb
-from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
+from unittest.mock import ANY, mock_open, patch
 from fixtures.remote import set_up, tear_down
 
 
 WP_PATH = '~/mysite'
-BACKUP_COMPRESSOR = 'bzip2'
-BACKUP_DECOMPRESSOR = '{} -d'.format(BACKUP_COMPRESSOR)
+BACKUP_COMPRESSOR = 'bzip2 -v'
+BACKUP_DECOMPRESSOR = 'bzip2 -d'
 BACKUP_PATH = '~/backups/mysite.sql.bz2'
 DB_PATH = BACKUP_PATH.replace('.bz2', '')
 
 
-def run_back_up(wordpress_path=WP_PATH,
-                compressor=BACKUP_COMPRESSOR,
-                backup_path=BACKUP_PATH):
-    swb.back_up(wordpress_path, compressor, backup_path)
+def run_back_up():
+    swb.back_up(WP_PATH, BACKUP_COMPRESSOR, BACKUP_PATH)
 
 
-def run_restore(wordpress_path=WP_PATH,
-                backup_path=BACKUP_PATH,
-                backup_decompressor=BACKUP_DECOMPRESSOR):
-    swb.restore(wordpress_path, backup_path, backup_decompressor)
+def run_restore():
+    swb.restore(WP_PATH, BACKUP_PATH, BACKUP_DECOMPRESSOR)
 
 
 @nose.with_setup(set_up, tear_down)
 @patch('src.remote.back_up')
 def test_route_back_up(back_up):
     '''should call back_up() with args if respective action is passed'''
-    swb.sys.argv = [swb.__file__, 'back-up', 'a', 'b', 'c']
-    swb.main()
-    back_up.assert_called_once_with('a', 'b', 'c')
+    args = [swb.__file__, 'back-up', 'a', 'b', 'c']
+    with patch('src.remote.sys.argv', args):
+        swb.main()
+        back_up.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
 @patch('src.remote.restore')
 def test_route_restore(restore):
     '''should call restore() with args if respective action is passed'''
-    swb.sys.argv = [swb.__file__, 'restore', 'a', 'b', 'c']
-    swb.main()
-    restore.assert_called_once_with('a', 'b', 'c')
+    args = [swb.__file__, 'restore', 'a', 'b', 'c']
+    with patch('src.remote.sys.argv', args):
+        swb.main()
+        restore.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
 @patch('src.remote.purge_downloaded_backup')
 def test_route_purge_backup(purge):
     '''should call purge_backup() with args if respective action is passed'''
-    swb.sys.argv = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
-    swb.main()
-    purge.assert_called_once_with('a', 'b', 'c')
+    args = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
+    with patch('src.remote.sys.argv', args):
+        swb.main()
+        purge.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
@@ -74,11 +72,19 @@ def test_create_dir_structure_silent_fail(makedirs):
 
 @nose.with_setup(set_up, tear_down)
 def test_dump_db():
-    '''should dump database'''
+    '''should dump database to stdout'''
     run_back_up()
     swb.subprocess.Popen.assert_any_call([
         'mysqldump', 'mydb', '-h', 'myhost', '-u', 'myname',
         '-pmypassword', '--add-drop-table'], stdout=subprocess.PIPE)
+
+
+@nose.with_setup(set_up, tear_down)
+def test_compress_db():
+    '''should compress dumped database'''
+    run_back_up()
+    swb.subprocess.Popen.assert_any_call(['bzip2', '-v'],
+                                         stdin=ANY, stdout=ANY)
 
 
 @nose.with_setup(set_up, tear_down)

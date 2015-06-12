@@ -6,7 +6,7 @@ import shlex
 import sys
 import nose.tools as nose
 import src.local as swb
-from unittest.mock import ANY, mock_open, NonCallableMagicMock, patch
+from unittest.mock import ANY, mock_open, patch
 from fixtures.local import set_up, tear_down, mock_backups
 
 
