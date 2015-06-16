@@ -111,13 +111,13 @@ def exec_on_remote(ssh_user, ssh_hostname, ssh_port, action, action_args,
         # Wait for command to finish execution
         ssh.wait()
 
-        if ssh.returncode != 0 and isinstance(ssh.returncode, int):
+        if ssh.returncode != 0:
             sys.exit(ssh.returncode)
 
 
 # Transfer a file from remote to local (or vice-versa) using SCP
 def transfer_file(ssh_user, ssh_hostname, ssh_port,
-                  src_path, dest_path, *, action, stdout, stderr):
+                  src_path, dest_path, action, *, stdout, stderr):
 
     scp_args = ['scp', '-P {}'.format(ssh_port)]
 
@@ -157,7 +157,7 @@ def download_remote_backup(ssh_user, ssh_hostname, ssh_port,
 
     transfer_file(ssh_user, ssh_hostname, ssh_port,
                   remote_backup_path, local_backup_path,
-                  action='download', stdout=stdout, stderr=stderr)
+                  'download', stdout=stdout, stderr=stderr)
 
 
 # Forcefully remove backup from remote
@@ -266,7 +266,7 @@ def restore(config, local_backup_path, *, stdout=None, stderr=None):
                   config.get('ssh', 'port'),
                   local_backup_path,
                   expanded_remote_backup_path,
-                  action='upload', stdout=stdout, stderr=stderr)
+                  'upload', stdout=stdout, stderr=stderr)
 
     action_args = [
         config.get('paths', 'wordpress'),

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-import glob
-import src.local as swb
-import fixtures.shared as shared
-from unittest.mock import Mock, NonCallableMagicMock
+import os
+import src.local
+from unittest.mock import Mock, patch
 
 
 mock_backups = [
@@ -15,17 +14,38 @@ mock_backups = [
 ]
 
 
-def before_all():
-    shared.before_all(swb)
-    swb.glob.iglob = Mock(return_value=mock_backups)
-    swb.os.stat = lambda path: Mock(st_mtime=mock_backups.index(path))
-    swb.input = Mock()
+def mock_stat(path):
+    if path in mock_backups:
+        return Mock(st_mtime=mock_backups.index(path))
 
 
-def before_each():
-    shared.before_each(swb)
+patch_makedirs = patch('src.local.os.makedirs')
+patch_remove = patch('src.local.os.remove')
+patch_rmdir = patch('src.local.os.rmdir')
+patch_stat = patch('src.local.os.stat', mock_stat)
+patch_iglob = patch('src.local.glob.iglob',
+                    return_value=mock_backups)
+patch_input = patch('src.local.input', create=True)
+patch_popen = patch('src.local.subprocess.Popen',
+                    return_value=Mock(returncode=0))
 
 
-def after_each():
-    shared.after_each(swb)
-    swb.input.reset_mock()
+def set_up():
+    patch_makedirs.start()
+    patch_remove.start()
+    patch_rmdir.start()
+    patch_stat.start()
+    patch_iglob.start()
+    patch_input.start()
+    patch_popen.start()
+
+
+def tear_down():
+    patch_makedirs.stop()
+    patch_remove.stop()
+    patch_rmdir.stop()
+    patch_stat.stop()
+    patch_iglob.stop()
+    patch_input.stop()
+    src.local.subprocess.Popen.reset_mock()
+    patch_popen.stop()
