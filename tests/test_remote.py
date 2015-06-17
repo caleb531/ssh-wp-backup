@@ -30,7 +30,7 @@ def run_restore():
 def test_route_back_up(back_up):
     '''should call back_up() with args if respective action is passed'''
     args = [swb.__file__, 'back-up', 'a', 'b', 'c']
-    with patch('src.remote.sys.argv', args):
+    with patch('sys.argv', args):
         swb.main()
         back_up.assert_called_once_with('a', 'b', 'c')
 
@@ -40,7 +40,7 @@ def test_route_back_up(back_up):
 def test_route_restore(restore):
     '''should call restore() with args if respective action is passed'''
     args = [swb.__file__, 'restore', 'a', 'b', 'c']
-    with patch('src.remote.sys.argv', args):
+    with patch('sys.argv', args):
         swb.main()
         restore.assert_called_once_with('a', 'b', 'c')
 
@@ -50,7 +50,7 @@ def test_route_restore(restore):
 def test_route_purge_backup(purge):
     '''should call purge_backup() with args if respective action is passed'''
     args = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
-    with patch('src.remote.sys.argv', args):
+    with patch('sys.argv', args):
         swb.main()
         purge.assert_called_once_with('a', 'b', 'c')
 
@@ -63,7 +63,7 @@ def test_create_dir_structure():
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.os.makedirs', side_effect=OSError)
+@patch('os.makedirs', side_effect=OSError)
 def test_create_dir_structure_silent_fail(makedirs):
     '''should fail silently if intermediate directories already exist'''
     run_back_up()
@@ -88,7 +88,7 @@ def test_compress_db():
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.os.path.getsize', return_value=20)
+@patch('os.path.getsize', return_value=20)
 def test_corrupted_backup(getsize):
     '''should raise OSError if backup is corrupted'''
     with nose.assert_raises(OSError):
@@ -136,7 +136,7 @@ def test_purge_restored_backup():
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.os.remove', side_effect=OSError)
+@patch('os.remove', side_effect=OSError)
 def test_purge_restored_backup_silent_fail(remove):
     '''should fail silently if remote files do not exist after restore'''
     run_restore()
