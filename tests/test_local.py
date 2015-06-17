@@ -87,6 +87,7 @@ def test_purge_oldest_backups():
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
+    nose.assert_equal(swb.os.remove.call_count, 2)
     for path in mock_backups[:-3]:
         swb.os.remove.assert_any_call(path)
 
@@ -107,6 +108,7 @@ def test_purge_empty_dirs():
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
+    nose.assert_equal(swb.os.remove.call_count, 2)
     for path in mock_backups[:-3]:
         swb.os.rmdir.assert_any_call(path)
 
@@ -118,6 +120,7 @@ def test_keep_nonempty_dirs(rmdir):
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
+    nose.assert_equal(swb.os.remove.call_count, 2)
     for path in mock_backups[:-3]:
         rmdir.assert_any_call(path)
 
