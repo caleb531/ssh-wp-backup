@@ -7,17 +7,15 @@ from invoke import task
 
 @task
 def test():
-    # invoke.run() does not respect colored output, unfortunately
-    nosetests = subprocess.Popen(['nosetests', '--rednose'])
-    nosetests.wait()
+    env = os.environ.copy()
+    # Colorize nose output using rednose if available
+    env.update({
+        'NOSE_REDNOSE': '1'
+    })
+    subprocess.call(['coverage', 'run', '-m', 'nose'], env=env)
 
 
 @task
 def cover():
-    try:
-        os.mkdir('cover')
-    except OSError:
-        pass
-    nosetests = subprocess.Popen(['nosetests', '--with-coverage',
-                                  '--cover-erase', '--cover-html'])
-    nosetests.wait()
+    subprocess.call(['coverage', 'report'])
+    subprocess.call(['coverage', 'html'])
