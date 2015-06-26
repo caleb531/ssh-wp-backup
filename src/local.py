@@ -178,8 +178,7 @@ def get_last_modified_time(path):
 # Purge empty directories originally created to store now-purged backups
 def purge_empty_dirs(dir_path):
 
-    # This construct functions as a do-while loop
-    while True:
+    while dir_path != '/':
         dir_path = os.path.dirname(dir_path)
         dir_name = os.path.basename(dir_path)
         # If next parent directory represents a timestamped directory
@@ -191,8 +190,6 @@ def purge_empty_dirs(dir_path):
                     os.rmdir(expanded_dir_path)
                 except OSError:
                     pass
-        elif dir_path == '/' or dir_path == '':
-            break
 
 
 # Purge oldest backups to keep number of backups within specified limit
@@ -209,7 +206,7 @@ def purge_oldest_backups(local_backup_path, max_local_backups):
     for backup in backups_to_purge:
         os.remove(backup)
 
-    # Purge created directories that are now empty
+    # Purge timestamped directories that are now empty
     purge_empty_dirs(local_backup_path)
 
 

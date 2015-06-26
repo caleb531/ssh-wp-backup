@@ -9,11 +9,11 @@ with open(WP_CONFIG_PATH) as wp_config:
     WP_CONFIG_CONTENTS = wp_config.read()
 
 
-patch_makedirs = patch('src.remote.os.makedirs')
-patch_remove = patch('src.remote.os.remove')
-patch_rmdir = patch('src.remote.os.rmdir')
-patch_getsize = patch('src.remote.os.path.getsize', return_value=54321)
-patch_popen = patch('src.remote.subprocess.Popen',
+patch_makedirs = patch('os.makedirs')
+patch_remove = patch('os.remove')
+patch_rmdir = patch('os.rmdir')
+patch_getsize = patch('os.path.getsize', return_value=54321)
+patch_popen = patch('subprocess.Popen',
                     return_value=Mock(returncode=0))
 
 
