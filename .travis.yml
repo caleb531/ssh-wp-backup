@@ -4,8 +4,7 @@ language: python
 python:
   - "3.4"
 install:
-  - pip install coverage
-  - pip install pep8
+  - pip install -r requirements.txt
   - pip install coveralls
 script:
   - coverage run -m nose
