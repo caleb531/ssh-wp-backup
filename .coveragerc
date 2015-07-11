@@ -14,5 +14,5 @@ exclude_lines =
 
 # Only check coverage for source files
 include =
-    src/local.py
-    src/remote.py
+    swb/local.py
+    swb/remote.py

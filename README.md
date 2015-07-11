@@ -78,7 +78,7 @@ properties marked as optional):
 			same site would exist)
 	- if option is omitted, all local backups are kept
 
-Please see the included [example.ini](src/config/example.ini) file for an
+Please see the included [example.ini](swb/config/example.ini) file for an
 example configuration.
 
 ### Adding a command alias
@@ -90,7 +90,7 @@ to run the utility via the `ssh-wp-backup` command.
 Assuming the CWD is the local project directory:
 
 ```
-ln -sf "$PWD"/src/local.py /usr/local/bin/ssh-wp-backup
+ln -sf "$PWD"/swb/local.py /usr/local/bin/ssh-wp-backup
 ```
 
 ### Running the utility

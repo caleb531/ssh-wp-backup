@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import src.local
+import subprocess
 from unittest.mock import Mock, patch
 
 
@@ -25,7 +25,7 @@ patch_rmdir = patch('os.rmdir')
 patch_stat = patch('os.stat', mock_stat)
 patch_iglob = patch('glob.iglob',
                     return_value=mock_backups)
-patch_input = patch('src.local.input', create=True)
+patch_input = patch('swb.local.input', create=True)
 patch_popen = patch('subprocess.Popen',
                     return_value=Mock(returncode=0))
 
@@ -47,5 +47,5 @@ def tear_down():
     patch_stat.stop()
     patch_iglob.stop()
     patch_input.stop()
-    src.local.subprocess.Popen.reset_mock()
+    subprocess.Popen.reset_mock()
     patch_popen.stop()

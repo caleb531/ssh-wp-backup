@@ -5,7 +5,7 @@ import os
 import shlex
 import sys
 import nose.tools as nose
-import src.local as swb
+import swb.local as swb
 from unittest.mock import ANY, mock_open, patch
 from fixtures.local import set_up, tear_down, mock_backups
 
@@ -124,7 +124,7 @@ def test_keep_nonempty_dirs(rmdir):
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.local.back_up')
+@patch('swb.local.back_up')
 def test_main_back_up(back_up):
     '''should call back_up() when config path is passed to main()'''
     config = get_config()
@@ -135,7 +135,7 @@ def test_main_back_up(back_up):
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.local.shlex')
+@patch('swb.local.shlex')
 def test_missing_shlex_quote(shlex):
     '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
     del shlex.quote
@@ -166,7 +166,7 @@ def test_quiet_mode():
     with patch('sys.argv', args):
         file_obj = mock_open()
         devnull = file_obj()
-        with patch('src.local.open', file_obj, create=True):
+        with patch('swb.local.open', file_obj, create=True):
             swb.main()
             file_obj.assert_any_call(os.devnull, 'w')
             swb.subprocess.Popen.assert_any_call(ANY, stdout=devnull,
@@ -174,7 +174,7 @@ def test_quiet_mode():
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.local.restore')
+@patch('swb.local.restore')
 def test_main_restore(restore):
     '''should call restore() when config path is passed to main()'''
     config = get_config()
@@ -188,7 +188,7 @@ def test_main_restore(restore):
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.local.restore')
+@patch('swb.local.restore')
 def test_force_mode(restore):
     '''should bypass restore confirmation in force mode'''
     config = get_config()

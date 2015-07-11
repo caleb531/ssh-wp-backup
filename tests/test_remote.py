@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 import nose.tools as nose
-import src.remote as swb
+import swb.remote as swb
 from unittest.mock import ANY, mock_open, patch
 from fixtures.remote import set_up, tear_down
 
@@ -26,7 +26,7 @@ def run_restore():
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.back_up')
+@patch('swb.remote.back_up')
 def test_route_back_up(back_up):
     '''should call back_up() with args if respective action is passed'''
     args = [swb.__file__, 'back-up', 'a', 'b', 'c']
@@ -36,7 +36,7 @@ def test_route_back_up(back_up):
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.restore')
+@patch('swb.remote.restore')
 def test_route_restore(restore):
     '''should call restore() with args if respective action is passed'''
     args = [swb.__file__, 'restore', 'a', 'b', 'c']
@@ -46,7 +46,7 @@ def test_route_restore(restore):
 
 
 @nose.with_setup(set_up, tear_down)
-@patch('src.remote.purge_downloaded_backup')
+@patch('swb.remote.purge_downloaded_backup')
 def test_route_purge_backup(purge):
     '''should call purge_backup() with args if respective action is passed'''
     args = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
