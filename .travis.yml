@@ -2,13 +2,13 @@
 
 language: python
 python:
+  - "3.2"
+  - "3.3"
   - "3.4"
 install:
-  - pip install coverage
-  - pip install pep8
+  - pip install -r requirements.txt
   - pip install coveralls
 script:
-  - nosetests
   - coverage run -m nose
 after_success:
   - coveralls

@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 
-import os
 import subprocess
 from invoke import task
 
 
 @task
-def test():
-    env = os.environ.copy()
-    # Colorize nose output using rednose if available
-    env.update({
-        'NOSE_REDNOSE': '1'
-    })
-    subprocess.call(['coverage', 'run', '-m', 'nose'], env=env)
-
-
-@task
-def cover():
-    subprocess.call(['coverage', 'report'])
-    subprocess.call(['coverage', 'html'])
+def test(cover=False):
+    # Run tests using nose called with coverage
+    code = subprocess.call(['coverage', 'run', '-m', 'nose', '--rednose'])
+    # Also generate coverage reports when --cover flag is given
+    if cover and code == 0:
+        # Add blank line between test report and coverage report
+        print('')
+        subprocess.call(['coverage', 'report'])
+        subprocess.call(['coverage', 'html'])
