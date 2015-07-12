@@ -270,11 +270,11 @@ def restore(config, local_backup_path, *, stdout=None, stderr=None):
         expanded_remote_backup_path,
         config.get('backup', 'decompressor')
     ]
-    ssh = exec_on_remote(config.get('ssh', 'user'),
-                         config.get('ssh', 'hostname'),
-                         config.get('ssh', 'port'),
-                         'restore', action_args,
-                         stdout=stdout, stderr=stderr)
+    exec_on_remote(config.get('ssh', 'user'),
+                   config.get('ssh', 'hostname'),
+                   config.get('ssh', 'port'),
+                   'restore', action_args,
+                   stdout=stdout, stderr=stderr)
 
 
 def main():
