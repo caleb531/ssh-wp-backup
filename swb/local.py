@@ -196,7 +196,7 @@ def purge_empty_dirs(dir_path):
 def purge_oldest_backups(local_backup_path, max_local_backups):
 
     # Convert date format sequences to wildcards
-    local_backup_path = re.sub('%\-?[A-Za-z]', '*', local_backup_path)
+    local_backup_path = re.sub(r'%\-?[A-Za-z]', '*', local_backup_path)
 
     # Retrieve list of local backups sorted from oldest to newest
     local_backups = sorted(glob.iglob(local_backup_path),
