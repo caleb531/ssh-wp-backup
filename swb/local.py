@@ -301,5 +301,6 @@ def main():
         else:
             back_up(config, stdout=stdout, stderr=stderr)
 
+
 if __name__ == '__main__':
     main()
