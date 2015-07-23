@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-import configparser
 import os
 import subprocess
-import sys
 import nose.tools as nose
 import swb.remote as swb
-from unittest.mock import ANY, mock_open, patch
+from unittest.mock import ANY, patch
 from fixtures.remote import set_up, tear_down
 
 

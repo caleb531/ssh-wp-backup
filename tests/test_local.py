@@ -2,8 +2,6 @@
 
 import configparser
 import os
-import shlex
-import sys
 import nose.tools as nose
 import swb.local as swb
 from unittest.mock import ANY, mock_open, patch
@@ -159,32 +157,29 @@ def test_ssh_error(exit):
 
 
 @nose.with_setup(set_up, tear_down)
+@patch('sys.argv', [swb.__file__, '-q', CONFIG_PATH])
 def test_quiet_mode():
     '''should silence SSH output in quiet mode'''
-    config = get_config()
-    args = [swb.__file__, '-q', CONFIG_PATH]
-    with patch('sys.argv', args):
-        file_obj = mock_open()
-        devnull = file_obj()
-        with patch('swb.local.open', file_obj, create=True):
-            swb.main()
-            file_obj.assert_any_call(os.devnull, 'w')
-            swb.subprocess.Popen.assert_any_call(ANY, stdout=devnull,
-                                                 stderr=devnull)
+    file_obj = mock_open()
+    devnull = file_obj()
+    with patch('swb.local.open', file_obj, create=True):
+        swb.main()
+        file_obj.assert_any_call(os.devnull, 'w')
+        swb.subprocess.Popen.assert_any_call(ANY, stdout=devnull,
+                                             stderr=devnull)
 
 
 @nose.with_setup(set_up, tear_down)
+@patch('sys.argv', [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH])
 @patch('swb.local.restore')
 def test_main_restore(restore):
     '''should call restore() when config path is passed to main()'''
     config = get_config()
-    args = [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH]
-    with patch('sys.argv', args):
-        swb.main()
-        nose.assert_equal(swb.input.call_count, 1)
-        swb.input.assert_called_once_with(ANY)
-        restore.assert_called_once_with(config, BACKUP_PATH,
-                                        stdout=None, stderr=None)
+    swb.main()
+    nose.assert_equal(swb.input.call_count, 1)
+    swb.input.assert_called_once_with(ANY)
+    restore.assert_called_once_with(config, BACKUP_PATH,
+                                    stdout=None, stderr=None)
 
 
 @nose.with_setup(set_up, tear_down)
@@ -203,7 +198,6 @@ def test_force_mode(restore):
 @nose.with_setup(set_up, tear_down)
 def test_restore_confirm_cancel():
     '''should exit script when user cancels restore confirmation'''
-    config = get_config()
     args = [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH]
     with patch('sys.argv', args):
         responses = ['n', 'N', ' n ', '']
