@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import subprocess
-from unittest.mock import Mock, patch
+from mock import Mock, patch
 
 
 mock_backups = [

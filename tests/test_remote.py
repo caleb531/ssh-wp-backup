@@ -4,7 +4,7 @@ import os
 import subprocess
 import nose.tools as nose
 import swb.remote as swb
-from unittest.mock import ANY, patch
+from mock import ANY, patch
 from fixtures.remote import set_up, tear_down
 
 

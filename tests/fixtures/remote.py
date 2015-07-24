@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import subprocess
-from unittest.mock import Mock, mock_open, patch
+from mock import Mock, mock_open, patch
 
 
 WP_CONFIG_PATH = 'tests/files/wp-config.php'
