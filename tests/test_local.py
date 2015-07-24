@@ -123,13 +123,12 @@ def test_keep_nonempty_dirs(rmdir):
 
 @nose.with_setup(set_up, tear_down)
 @patch('swb.local.back_up')
+@patch('sys.argv', [swb.__file__, CONFIG_PATH])
 def test_main_back_up(back_up):
     '''should call back_up() when config path is passed to main()'''
     config = get_config()
-    args = [swb.__file__, CONFIG_PATH]
-    with patch('sys.argv', args):
-        swb.main()
-        back_up.assert_called_once_with(config, stdout=None, stderr=None)
+    swb.main()
+    back_up.assert_called_once_with(config, stdout=None, stderr=None)
 
 
 @nose.with_setup(set_up, tear_down)
@@ -184,27 +183,25 @@ def test_main_restore(restore):
 
 @nose.with_setup(set_up, tear_down)
 @patch('swb.local.restore')
+@patch('sys.argv', [swb.__file__, '-f', CONFIG_PATH, '-r', BACKUP_PATH])
 def test_force_mode(restore):
     '''should bypass restore confirmation in force mode'''
     config = get_config()
-    args = [swb.__file__, '-f', CONFIG_PATH, '-r', BACKUP_PATH]
-    with patch('sys.argv', args):
-        swb.main()
-        nose.assert_equal(swb.input.call_count, 0)
-        restore.assert_called_once_with(config, BACKUP_PATH,
-                                        stdout=None, stderr=None)
+    swb.main()
+    nose.assert_equal(swb.input.call_count, 0)
+    restore.assert_called_once_with(config, BACKUP_PATH,
+                                    stdout=None, stderr=None)
 
 
 @nose.with_setup(set_up, tear_down)
+@patch('sys.argv', [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH])
 def test_restore_confirm_cancel():
     '''should exit script when user cancels restore confirmation'''
-    args = [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH]
-    with patch('sys.argv', args):
-        responses = ['n', 'N', ' n ', '']
-        for response in responses:
-            swb.input.return_value = response
-            with nose.assert_raises(Exception):
-                swb.main()
+    responses = ['n', 'N', ' n ', '']
+    for response in responses:
+        swb.input.return_value = response
+        with nose.assert_raises(Exception):
+            swb.main()
 
 
 @nose.with_setup(set_up, tear_down)
