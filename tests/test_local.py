@@ -5,7 +5,7 @@ import os
 import nose.tools as nose
 import swb.local as swb
 from mock import ANY, mock_open, patch
-from fixtures.local import set_up, tear_down, mock_backups
+from tests.fixtures.local import set_up, tear_down, mock_backups
 
 
 CONFIG_PATH = 'tests/files/config.ini'

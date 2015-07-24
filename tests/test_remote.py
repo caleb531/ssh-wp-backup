@@ -5,7 +5,7 @@ import subprocess
 import nose.tools as nose
 import swb.remote as swb
 from mock import ANY, patch
-from fixtures.remote import set_up, tear_down
+from tests.fixtures.remote import set_up, tear_down
 
 
 WP_PATH = '~/mysite'
