@@ -2,7 +2,6 @@
 
 import glob
 import itertools
-import os.path
 import nose.tools as nose
 import pep8
 import radon.complexity as radon

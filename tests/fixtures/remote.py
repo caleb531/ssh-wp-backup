@@ -15,6 +15,7 @@ patch_rmdir = patch('os.rmdir')
 patch_getsize = patch('os.path.getsize', return_value=54321)
 patch_popen = patch('subprocess.Popen',
                     return_value=Mock(returncode=0))
+patch_open = None
 
 
 def set_up():
@@ -30,6 +31,7 @@ def set_up():
 
 
 def tear_down():
+    global patch_open
     patch_makedirs.stop()
     patch_remove.stop()
     patch_rmdir.stop()

@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-import configparser
 import os
 import subprocess
-import sys
 import nose.tools as nose
 import swb.remote as swb
-from mock import ANY, mock_open, patch
+from mock import ANY, patch
 from tests.fixtures.remote import set_up, tear_down
 
 
@@ -27,32 +25,29 @@ def run_restore():
 
 @nose.with_setup(set_up, tear_down)
 @patch('swb.remote.back_up')
+@patch('sys.argv', [swb.__file__, 'back-up', 'a', 'b', 'c'])
 def test_route_back_up(back_up):
     '''should call back_up() with args if respective action is passed'''
-    args = [swb.__file__, 'back-up', 'a', 'b', 'c']
-    with patch('sys.argv', args):
-        swb.main()
-        back_up.assert_called_once_with('a', 'b', 'c')
+    swb.main()
+    back_up.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
 @patch('swb.remote.restore')
+@patch('sys.argv', [swb.__file__, 'restore', 'a', 'b', 'c'])
 def test_route_restore(restore):
     '''should call restore() with args if respective action is passed'''
-    args = [swb.__file__, 'restore', 'a', 'b', 'c']
-    with patch('sys.argv', args):
-        swb.main()
-        restore.assert_called_once_with('a', 'b', 'c')
+    swb.main()
+    restore.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
 @patch('swb.remote.purge_downloaded_backup')
+@patch('sys.argv', [swb.__file__, 'purge-backup', 'a', 'b', 'c'])
 def test_route_purge_backup(purge):
     '''should call purge_backup() with args if respective action is passed'''
-    args = [swb.__file__, 'purge-backup', 'a', 'b', 'c']
-    with patch('sys.argv', args):
-        swb.main()
-        purge.assert_called_once_with('a', 'b', 'c')
+    swb.main()
+    purge.assert_called_once_with('a', 'b', 'c')
 
 
 @nose.with_setup(set_up, tear_down)
