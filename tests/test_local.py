@@ -20,14 +20,14 @@ def get_config():
 
 
 def test_config_parser():
-    '''should parse configuration file correctly'''
+    """should parse configuration file correctly"""
     config = swb.parse_config(CONFIG_PATH)
     nose.assert_is_instance(config, configparser.RawConfigParser)
 
 
 @nose.with_setup(set_up, tear_down)
 def test_create_remote_backup():
-    '''should create remote backup via SSH'''
+    """should create remote backup via SSH"""
     config = get_config()
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call([
@@ -38,7 +38,7 @@ def test_create_remote_backup():
 
 @nose.with_setup(set_up, tear_down)
 def test_download_remote_backup():
-    '''should download remote backup via SCP'''
+    """should download remote backup via SCP"""
     config = get_config()
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call([
@@ -49,7 +49,7 @@ def test_download_remote_backup():
 
 @nose.with_setup(set_up, tear_down)
 def test_create_dir_structure():
-    '''should create intermediate directories'''
+    """should create intermediate directories"""
     config = get_config()
     swb.back_up(config)
     swb.os.makedirs.assert_called_once_with(
@@ -59,7 +59,7 @@ def test_create_dir_structure():
 @nose.with_setup(set_up, tear_down)
 @patch('os.makedirs', side_effect=OSError)
 def test_create_dir_structure_silent_fail(makedirs):
-    '''should fail silently if intermediate directories already exist'''
+    """should fail silently if intermediate directories already exist"""
     config = get_config()
     swb.back_up(config)
     makedirs.assert_called_once_with(os.path.expanduser(
@@ -68,7 +68,7 @@ def test_create_dir_structure_silent_fail(makedirs):
 
 @nose.with_setup(set_up, tear_down)
 def test_purge_remote_backup():
-    '''should purge remote backup after download'''
+    """should purge remote backup after download"""
     config = get_config()
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call([
@@ -79,7 +79,7 @@ def test_purge_remote_backup():
 
 @nose.with_setup(set_up, tear_down)
 def test_purge_oldest_backups():
-    '''should purge oldest local backups after download'''
+    """should purge oldest local backups after download"""
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
@@ -90,7 +90,7 @@ def test_purge_oldest_backups():
 
 @nose.with_setup(set_up, tear_down)
 def test_null_max_local_backups():
-    '''should keep all backups if max_local_backups is not set'''
+    """should keep all backups if max_local_backups is not set"""
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     config.remove_option('backup', 'max_local_backups')
@@ -100,7 +100,7 @@ def test_null_max_local_backups():
 
 @nose.with_setup(set_up, tear_down)
 def test_purge_empty_dirs():
-    '''should purge empty timestamped directories'''
+    """should purge empty timestamped directories"""
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
@@ -112,7 +112,7 @@ def test_purge_empty_dirs():
 @nose.with_setup(set_up, tear_down)
 @patch('os.rmdir', side_effect=OSError)
 def test_keep_nonempty_dirs(rmdir):
-    '''should not purge nonempty timestamped directories'''
+    """should not purge nonempty timestamped directories"""
     config = get_config()
     config.set('paths', 'local_backup', BACKUP_PATH_TIMESTAMPED)
     swb.back_up(config)
@@ -125,7 +125,7 @@ def test_keep_nonempty_dirs(rmdir):
 @patch('swb.local.back_up')
 @patch('sys.argv', [swb.__file__, CONFIG_PATH])
 def test_main_back_up(back_up):
-    '''should call back_up() when config path is passed to main()'''
+    """should call back_up() when config path is passed to main()"""
     config = get_config()
     swb.main()
     back_up.assert_called_once_with(config, stdout=None, stderr=None)
@@ -134,7 +134,7 @@ def test_main_back_up(back_up):
 @nose.with_setup(set_up, tear_down)
 @patch('swb.local.shlex')
 def test_missing_shlex_quote(shlex):
-    '''should use pipes.quote() if shlex.quote() is missing (<3.3)'''
+    """should use pipes.quote() if shlex.quote() is missing (<3.3)"""
     del shlex.quote
     config = get_config()
     swb.back_up(config)
@@ -148,7 +148,7 @@ def test_missing_shlex_quote(shlex):
 @nose.with_setup(set_up, tear_down)
 @patch('sys.exit')
 def test_ssh_error(exit):
-    '''should exit if SSH process returns non-zero exit code'''
+    """should exit if SSH process returns non-zero exit code"""
     config = get_config()
     swb.subprocess.Popen.return_value.returncode = 3
     swb.back_up(config)
@@ -158,7 +158,7 @@ def test_ssh_error(exit):
 @nose.with_setup(set_up, tear_down)
 @patch('sys.argv', [swb.__file__, '-q', CONFIG_PATH])
 def test_quiet_mode():
-    '''should silence SSH output in quiet mode'''
+    """should silence SSH output in quiet mode"""
     file_obj = mock_open()
     devnull = file_obj()
     with patch('swb.local.open', file_obj, create=True):
@@ -172,7 +172,7 @@ def test_quiet_mode():
 @patch('sys.argv', [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH])
 @patch('swb.local.restore')
 def test_main_restore(restore):
-    '''should call restore() when config path is passed to main()'''
+    """should call restore() when config path is passed to main()"""
     config = get_config()
     swb.main()
     nose.assert_equal(swb.input.call_count, 1)
@@ -185,7 +185,7 @@ def test_main_restore(restore):
 @patch('swb.local.restore')
 @patch('sys.argv', [swb.__file__, '-f', CONFIG_PATH, '-r', BACKUP_PATH])
 def test_force_mode(restore):
-    '''should bypass restore confirmation in force mode'''
+    """should bypass restore confirmation in force mode"""
     config = get_config()
     swb.main()
     nose.assert_equal(swb.input.call_count, 0)
@@ -196,7 +196,7 @@ def test_force_mode(restore):
 @nose.with_setup(set_up, tear_down)
 @patch('sys.argv', [swb.__file__, CONFIG_PATH, '-r', BACKUP_PATH])
 def test_restore_confirm_cancel():
-    '''should exit script when user cancels restore confirmation'''
+    """should exit script when user cancels restore confirmation"""
     responses = ['n', 'N', ' n ', '']
     for response in responses:
         swb.input.return_value = response
@@ -206,7 +206,7 @@ def test_restore_confirm_cancel():
 
 @nose.with_setup(set_up, tear_down)
 def test_upload_local_backup():
-    '''should upload local backup to remote for restoration'''
+    """should upload local backup to remote for restoration"""
     config = get_config()
     swb.restore(config, BACKUP_PATH, stdout=None, stderr=None)
     swb.subprocess.Popen.assert_any_call([
@@ -217,7 +217,7 @@ def test_upload_local_backup():
 
 @nose.with_setup(set_up, tear_down)
 def test_process_wait_back_up():
-    '''should wait for each process to finish when backing up'''
+    """should wait for each process to finish when backing up"""
     config = get_config()
     swb.back_up(config)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 3)
@@ -225,7 +225,7 @@ def test_process_wait_back_up():
 
 @nose.with_setup(set_up, tear_down)
 def test_process_wait_restore():
-    '''should wait for each process to finish when restoring'''
+    """should wait for each process to finish when restoring"""
     config = get_config()
     swb.restore(config, BACKUP_PATH, stdout=None, stderr=None)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
