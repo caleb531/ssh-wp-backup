@@ -105,8 +105,8 @@ def exec_on_remote(ssh_user, ssh_hostname, ssh_port, action, action_args,
             action  # The action to run on remote
         ] + action_args
 
-        ssh = subprocess.Popen(ssh_args, stdin=remote_script,
-                               stdout=stdout, stderr=stderr)
+        ssh = subprocess.Popen(
+            ssh_args, stdin=remote_script, stdout=stdout, stderr=stderr)
 
         # Wait for command to finish execution
         ssh.wait()
@@ -223,32 +223,36 @@ def back_up(config, *, stdout=None, stderr=None):
     expanded_remote_backup_path = time.strftime(
         config.get('paths', 'remote_backup'))
 
-    create_remote_backup(config.get('ssh', 'user'),
-                         config.get('ssh', 'hostname'),
-                         config.get('ssh', 'port'),
-                         config.get('paths', 'wordpress'),
-                         expanded_remote_backup_path,
-                         config.get('backup', 'compressor'),
-                         stdout=stdout, stderr=stderr)
+    create_remote_backup(
+        config.get('ssh', 'user'),
+        config.get('ssh', 'hostname'),
+        config.get('ssh', 'port'),
+        config.get('paths', 'wordpress'),
+        expanded_remote_backup_path,
+        config.get('backup', 'compressor'),
+        stdout=stdout, stderr=stderr)
 
     create_dir_structure(expanded_local_backup_path)
 
-    download_remote_backup(config.get('ssh', 'user'),
-                           config.get('ssh', 'hostname'),
-                           config.get('ssh', 'port'),
-                           expanded_remote_backup_path,
-                           expanded_local_backup_path,
-                           stdout=stdout, stderr=stderr)
+    download_remote_backup(
+        config.get('ssh', 'user'),
+        config.get('ssh', 'hostname'),
+        config.get('ssh', 'port'),
+        expanded_remote_backup_path,
+        expanded_local_backup_path,
+        stdout=stdout, stderr=stderr)
 
-    purge_remote_backup(config.get('ssh', 'user'),
-                        config.get('ssh', 'hostname'),
-                        config.get('ssh', 'port'),
-                        expanded_remote_backup_path,
-                        stdout=stdout, stderr=stderr)
+    purge_remote_backup(
+        config.get('ssh', 'user'),
+        config.get('ssh', 'hostname'),
+        config.get('ssh', 'port'),
+        expanded_remote_backup_path,
+        stdout=stdout, stderr=stderr)
 
     if config.has_option('backup', 'max_local_backups'):
-        purge_oldest_backups(config.get('paths', 'local_backup'),
-                             config.getint('backup', 'max_local_backups'))
+        purge_oldest_backups(
+            config.get('paths', 'local_backup'),
+            config.getint('backup', 'max_local_backups'))
 
 
 # Restore the chosen database revision to the Wordpress install on remote
@@ -258,23 +262,26 @@ def restore(config, local_backup_path, *, stdout=None, stderr=None):
         config.get('paths', 'remote_backup'))
 
     # Copy local backup to remote so it can be used for restoration
-    transfer_file(config.get('ssh', 'user'),
-                  config.get('ssh', 'hostname'),
-                  config.get('ssh', 'port'),
-                  local_backup_path,
-                  expanded_remote_backup_path,
-                  'upload', stdout=stdout, stderr=stderr)
+    transfer_file(
+        config.get('ssh', 'user'),
+        config.get('ssh', 'hostname'),
+        config.get('ssh', 'port'),
+        local_backup_path,
+        expanded_remote_backup_path,
+        'upload',
+        stdout=stdout, stderr=stderr)
 
     action_args = [
         config.get('paths', 'wordpress'),
         expanded_remote_backup_path,
         config.get('backup', 'decompressor')
     ]
-    exec_on_remote(config.get('ssh', 'user'),
-                   config.get('ssh', 'hostname'),
-                   config.get('ssh', 'port'),
-                   'restore', action_args,
-                   stdout=stdout, stderr=stderr)
+    exec_on_remote(
+        config.get('ssh', 'user'),
+        config.get('ssh', 'hostname'),
+        config.get('ssh', 'port'),
+        'restore', action_args,
+        stdout=stdout, stderr=stderr)
 
 
 def main():

@@ -59,9 +59,9 @@ def dump_db(db_name, db_host, db_user, db_password,
     # Create remote backup so as to write output of dump/compress to file
     with open(backup_path, 'w') as backup_file:
 
-        compressor = subprocess.Popen(shlex.split(backup_compressor),
-                                      stdin=mysqldump.stdout,
-                                      stdout=backup_file)
+        compressor = subprocess.Popen(
+            shlex.split(backup_compressor),
+            stdin=mysqldump.stdout, stdout=backup_file)
 
         # Wait for remote to dump and compress database
         mysqldump.wait()
@@ -87,17 +87,18 @@ def back_up(wordpress_path, backup_compressor, backup_path):
     create_dir_structure(backup_path)
 
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info['name'], db_info['host'],
-            db_info['user'], db_info['password'],
-            backup_compressor, backup_path)
+    dump_db(
+        db_info['name'], db_info['host'],
+        db_info['user'], db_info['password'],
+        backup_compressor, backup_path)
     verify_backup_integrity(backup_path)
 
 
 # Decompress the given backup file to a database file in the same directory
 def decompress_backup(backup_path, backup_decompressor):
 
-    compressor = subprocess.Popen(shlex.split(backup_decompressor) +
-                                  [backup_path])
+    compressor = subprocess.Popen(
+        shlex.split(backup_decompressor) + [backup_path])
     compressor.wait()
 
 
@@ -144,8 +145,9 @@ def restore(wordpress_path, backup_path, backup_decompressor):
     db_info = get_db_info(wordpress_path)
     db_path = get_db_path(backup_path)
 
-    replace_db(db_info['name'], db_info['host'],
-               db_info['user'], db_info['password'], db_path)
+    replace_db(
+        db_info['name'], db_info['host'],
+        db_info['user'], db_info['password'], db_path)
 
     purge_restored_backup(backup_path, db_path)
 
