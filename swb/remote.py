@@ -101,6 +101,14 @@ def purge_downloaded_backup(backup_path):
     os.remove(backup_path)
 
 
+# Compressed an existing tar backup file using the chosen compressor
+def compress_tar(tar_path, backup_path, backup_compressor):
+
+    compressor = subprocess.Popen(
+        shlex.split(backup_compressor) + [backup_path, tar_path])
+    compressor.wait()
+
+
 # Add a database to the given tar file under the given name
 def add_db_to_tar(tar_file, db_file_name, db_contents):
 
@@ -114,7 +122,8 @@ def add_db_to_tar(tar_file, db_file_name, db_contents):
 
 # Create the full backup file by tar'ing both the wordpress site directory and
 # the the dumped database contents
-def create_full_backup(backup_path, wordpress_path, db_contents):
+def create_full_backup(wordpress_path, db_contents,
+                       backup_path, backup_compressor):
 
     backup_name = os.path.basename(backup_path)
     tar_name = os.path.splitext(backup_name)[0]
@@ -130,6 +139,8 @@ def create_full_backup(backup_path, wordpress_path, db_contents):
     add_db_to_tar(tar_file, db_file_name, db_contents)
     tar_file.close()
 
+    compress_tar(tar_path, backup_path, backup_compressor)
+
 
 # Back up WordPress database or installation
 def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
@@ -144,7 +155,9 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
         db_contents = dump_uncompressed_db(
             db_info['name'], db_info['host'],
             db_info['user'], db_info['password'])
-        create_full_backup(backup_path, wordpress_path, db_contents)
+        create_full_backup(
+            wordpress_path, db_contents,
+            backup_path, backup_compressor)
         # verify_backup_integrity(backup_path)
 
     else:
