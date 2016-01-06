@@ -12,11 +12,12 @@ WP_PATH = '~/mysite'
 BACKUP_COMPRESSOR = 'bzip2 -v'
 BACKUP_DECOMPRESSOR = 'bzip2 -d'
 BACKUP_PATH = '~/backups/mysite.sql.bz2'
+FULL_BACKUP = False
 DB_PATH = BACKUP_PATH.replace('.bz2', '')
 
 
 def run_back_up():
-    swb.back_up(WP_PATH, BACKUP_COMPRESSOR, BACKUP_PATH)
+    swb.back_up(WP_PATH, BACKUP_COMPRESSOR, BACKUP_PATH, FULL_BACKUP)
 
 
 def run_restore():

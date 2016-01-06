@@ -32,8 +32,8 @@ def test_create_remote_backup():
     swb.back_up(config)
     swb.subprocess.Popen.assert_any_call([
         'ssh', '-p 2222', 'myname@mysite.com', 'python3', '-', 'back-up',
-        '~/\'public_html/mysite\'', 'bzip2', '~/\'backups/mysite.sql.bz2\''],
-        stdin=ANY, stdout=None, stderr=None)
+        '~/\'public_html/mysite\'', 'bzip2', '~/\'backups/mysite.sql.bz2\'',
+        'False'], stdin=ANY, stdout=None, stderr=None)
 
 
 @nose.with_setup(set_up, tear_down)

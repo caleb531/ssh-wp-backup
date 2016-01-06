@@ -4,6 +4,7 @@ import os
 import os.path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -81,17 +82,37 @@ def purge_downloaded_backup(backup_path):
     os.remove(backup_path)
 
 
-def back_up(wordpress_path, backup_compressor, backup_path):
+def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
 
     backup_path = os.path.expanduser(backup_path)
     create_dir_structure(backup_path)
 
-    db_info = get_db_info(wordpress_path)
-    dump_db(
-        db_info['name'], db_info['host'],
-        db_info['user'], db_info['password'],
-        backup_compressor, backup_path)
-    verify_backup_integrity(backup_path)
+    if full_backup == 'True':
+
+        # backup_path is assumed to refer to entire site directory backup
+        wordpress_site_name = os.path.basename(wordpress_path)
+        backup_pwd_path = os.path.dirname(backup_path)
+        shutil.copy2(wordpress_path, backup_pwd_path)
+
+        db_backup_name = '{}.sql'.format()
+        db_backup_path = os.path.join(
+            backup_pwd_path, wordpress_site_name, db_backup_name)
+        db_info = get_db_info(wordpress_path)
+        dump_db(
+            db_info['name'], db_info['host'],
+            db_info['user'], db_info['password'],
+            backup_compressor, db_backup_path)
+        verify_backup_integrity(backup_path)
+
+    else:
+
+        # backup_path is assumed to refer to SQL database file backup
+        db_info = get_db_info(wordpress_path)
+        dump_db(
+            db_info['name'], db_info['host'],
+            db_info['user'], db_info['password'],
+            backup_compressor, backup_path)
+        verify_backup_integrity(backup_path)
 
 
 # Decompress the given backup file to a database file in the same directory

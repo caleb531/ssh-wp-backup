@@ -77,10 +77,10 @@ def quote_arg(arg):
 
     if hasattr(shlex, 'quote'):
         # shlex.quote was introduced in v3.3
-        quoted_arg = shlex.quote(arg)
+        quoted_arg = shlex.quote(str(arg))
     else:
         # pipes.quote is deprecated, but use it if shlex.quote is unavailable
-        quoted_arg = pipes.quote(arg)
+        quoted_arg = pipes.quote(str(arg))
 
     quoted_arg = unquote_home_dir(quoted_arg)
     return quoted_arg
@@ -141,12 +141,13 @@ def transfer_file(ssh_user, ssh_hostname, ssh_port,
 # Execute remote backup script to create remote backup
 def create_remote_backup(ssh_user, ssh_hostname, ssh_port,
                          wordpress_path, remote_backup_path,
-                         backup_compressor, *, stdout, stderr):
+                         backup_compressor, full_backup, *, stdout, stderr):
 
     exec_on_remote(ssh_user, ssh_hostname, ssh_port, 'back-up', [
         wordpress_path,
         backup_compressor,
-        remote_backup_path
+        remote_backup_path,
+        full_backup
     ], stdout=stdout, stderr=stderr)
 
 
@@ -230,6 +231,7 @@ def back_up(config, *, stdout=None, stderr=None):
         config.get('paths', 'wordpress'),
         expanded_remote_backup_path,
         config.get('backup', 'compressor'),
+        config.getboolean('backup', 'full_backup'),
         stdout=stdout, stderr=stderr)
 
     create_dir_structure(expanded_local_backup_path)
