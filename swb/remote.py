@@ -169,7 +169,7 @@ def decompress_backup(backup_path, backup_decompressor):
 # Construct path to decompressed database file from given backup file
 def get_db_path(backup_path):
 
-    return re.sub('\.([A-Za-z0-9]+)$', '', backup_path)
+    return os.path.splitext(backup_path)[0]
 
 
 # Replace a WordPress database with the database at the given path
