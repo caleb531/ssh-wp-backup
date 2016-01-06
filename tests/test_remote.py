@@ -16,12 +16,14 @@ FULL_BACKUP = False
 DB_PATH = BACKUP_PATH.replace('.bz2', '')
 
 
-def run_back_up():
-    swb.back_up(WP_PATH, BACKUP_COMPRESSOR, BACKUP_PATH, FULL_BACKUP)
+def run_back_up(wp_path=WP_PATH, backup_compressor=BACKUP_COMPRESSOR,
+                backup_path=BACKUP_PATH, full_backup=FULL_BACKUP):
+    swb.back_up(wp_path, backup_compressor, backup_path, full_backup)
 
 
-def run_restore():
-    swb.restore(WP_PATH, BACKUP_PATH, BACKUP_DECOMPRESSOR)
+def run_restore(wp_path=WP_PATH, backup_path=BACKUP_PATH,
+                backup_decompressor=BACKUP_DECOMPRESSOR):
+    swb.restore(wp_path, backup_path, backup_decompressor)
 
 
 @nose.with_setup(set_up, tear_down)
