@@ -4,7 +4,7 @@ import configparser
 import os
 import nose.tools as nose
 import swb.local as swb
-from mock import NonCallableMock, patch
+from mock import call, NonCallableMock, patch
 # from tests.fixtures.local import set_up, tear_down, mock_backups
 
 
@@ -156,3 +156,27 @@ def test_get_last_modified_time():
     nose.assert_equal(
         swb.get_last_modified_time('swb/local.py'),
         os.stat('swb/local.py').st_mtime)
+
+
+@patch('glob.iglob', side_effect=[
+    ['/a/b/2011/02/03'],
+    ['/a/b/2011/02'],
+    ['/a/b/2011'],
+    ['/a/b'],
+    ['/a']
+])
+@patch('os.rmdir')
+def test_purge_empty_dirs(rmdir, iglob):
+    """should purge empty timestamped directories"""
+    swb.purge_empty_dirs('/a/b/*/*/*/c')
+    nose.assert_equal(iglob.call_count, 3)
+    nose.assert_equal(iglob.call_args_list, [
+        call('/a/b/*/*/*'),
+        call('/a/b/*/*'),
+        call('/a/b/*')
+    ])
+    nose.assert_equal(rmdir.call_args_list, [
+        call('/a/b/2011/02/03'),
+        call('/a/b/2011/02'),
+        call('/a/b/2011')
+    ])
