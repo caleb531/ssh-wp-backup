@@ -42,10 +42,12 @@ def test_unquote_home_dir_path_without_tilde():
     nose.assert_equal(unquoted_path, '\'/a/b c/d\'')
 
 
-def test_quote_arg():
+@patch('swb.local.unquote_home_dir', side_effect=lambda x: x)
+def test_quote_arg(unquote_home_dir):
     """should correctly quote arguments passed to the shell"""
     quoted_arg = swb.quote_arg('a/b c/d')
     nose.assert_equal(quoted_arg, '\'a/b c/d\'')
+    unquote_home_dir.assert_called_once_with('\'a/b c/d\'')
 
 
 @patch('swb.local.shlex')
@@ -62,8 +64,9 @@ def test_quote_arg_py32(shlex):
 def test_exec_on_remote(local_open, popen):
     """should execute script on remote server"""
     swb.exec_on_remote(
-        'myname', 'mysite.com', '2222',
-        'back-up', ['~/public_html/mysite', 'bzip2 -v', 'a/b c/d', 'False'],
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        action='back-up',
+        action_args=['~/public_html/mysite', 'bzip2 -v', 'a/b c/d', 'False'],
         stdout=1, stderr=2)
     popen.assert_called_once_with([
         'ssh', '-p 2222', 'myname@mysite.com',
@@ -87,7 +90,8 @@ def test_exec_on_remote_nonzero_return(exit, local_open, popen):
 def test_transfer_file_download(popen):
     """should download backup from remote server when backing up"""
     swb.transfer_file(
-        'myname', 'mysite.com', '2222', 'a/b c/d', 'e/f g/h',
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        src_path='a/b c/d', dest_path='e/f g/h',
         action='download', stdout=1, stderr=2)
     popen.assert_called_once_with(
         ['scp', '-P 2222', 'myname@mysite.com:\'a/b c/d\'', 'e/f g/h'],
@@ -99,9 +103,48 @@ def test_transfer_file_download(popen):
 def test_transfer_file_upload(popen):
     """should upload backup to remote server when restoring"""
     swb.transfer_file(
-        'myname', 'mysite.com', '2222', 'a/b c/d', 'e/f g/h',
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        src_path='a/b c/d', dest_path='e/f g/h',
         action='upload', stdout=1, stderr=2)
     popen.assert_called_once_with(
         ['scp', '-P 2222', 'a/b c/d', 'myname@mysite.com:\'e/f g/h\''],
         stdout=1, stderr=2)
     popen.return_value.wait.assert_called_once_with()
+
+
+@patch('swb.local.exec_on_remote')
+def test_create_remote_backup(exec_on_remote):
+    """should execute remote script when creating remote backup"""
+    swb.create_remote_backup(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
+        backup_compressor='bzip2 -v', full_backup=False,
+        stdout=1, stderr=2)
+    exec_on_remote.assert_called_once_with(
+        'myname', 'mysite.com', '2222', 'back-up',
+        ['a/b c/d', 'bzip2 -v', 'e/f g/h', False],
+        stdout=1, stderr=2)
+
+
+@patch('swb.local.transfer_file')
+def test_download_remote_backup(transfer_file):
+    """should download remote backup after creation"""
+    swb.download_remote_backup(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        remote_backup_path='a/b c/d', local_backup_path='e/f g/h',
+        stdout=1, stderr=2)
+    transfer_file.assert_called_once_with(
+        'myname', 'mysite.com', '2222',
+        'a/b c/d', 'e/f g/h', 'download',
+        stdout=1, stderr=2)
+
+
+@patch('swb.local.exec_on_remote')
+def test_purge_remote_backup(exec_on_remote):
+    """should purge remote backup after download"""
+    swb.purge_remote_backup(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        remote_backup_path='a/b c/d', stdout=1, stderr=2)
+    exec_on_remote.assert_called_once_with(
+        'myname', 'mysite.com', '2222', 'purge-backup', ['a/b c/d'],
+        stdout=1, stderr=2)
