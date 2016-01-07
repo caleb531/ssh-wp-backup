@@ -4,8 +4,8 @@ import subprocess
 from mock import Mock, mock_open, patch
 
 
-WP_CONFIG_PATH = 'tests/files/wp-config.php'
-with open(WP_CONFIG_PATH) as wp_config:
+WP_CONFIG_PATH = 'tests/files/mysite/wp-config.php'
+with open(WP_CONFIG_PATH, 'r') as wp_config:
     WP_CONFIG_CONTENTS = wp_config.read()
 
 
@@ -13,8 +13,10 @@ patch_makedirs = patch('os.makedirs')
 patch_remove = patch('os.remove')
 patch_rmdir = patch('os.rmdir')
 patch_getsize = patch('os.path.getsize', return_value=54321)
+mock_communicate = Mock(return_value=[b'db contents', b'no errors'])
 patch_popen = patch('subprocess.Popen',
-                    return_value=Mock(returncode=0))
+                    return_value=Mock(
+                        returncode=0, communicate=mock_communicate))
 patch_open = None
 
 

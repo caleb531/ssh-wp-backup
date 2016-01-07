@@ -158,7 +158,7 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
         create_full_backup(
             wordpress_path, db_contents,
             backup_path, backup_compressor)
-        # verify_backup_integrity(backup_path)
+        verify_backup_integrity(backup_path)
 
     else:
 
