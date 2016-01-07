@@ -2,8 +2,10 @@
 
 import configparser
 import os
+import os.path
 import nose.tools as nose
 import swb.local as swb
+from time import strftime
 from mock import call, NonCallableMock, patch
 # from tests.fixtures.local import set_up, tear_down, mock_backups
 
@@ -218,3 +220,49 @@ def test_purge_oldest_backups(purge_empty_dirs, get_last_modified_time,
         call('a/2013/04/05/b')
     ])
     purge_empty_dirs.assert_called_once_with('a/*/*/*/b')
+
+
+@patch('swb.local.create_remote_backup')
+@patch('swb.local.create_dir_structure')
+@patch('swb.local.download_remote_backup')
+@patch('swb.local.purge_remote_backup')
+@patch('swb.local.purge_oldest_backups')
+def test_back_up(purge_oldest_backups, purge_remote_backup,
+                 download_remote_backup, create_dir_structure,
+                 create_remote_backup):
+    """should run correct backup procedure"""
+    config = configparser.RawConfigParser()
+    config.read('tests/files/config.ini')
+    swb.back_up(config, stdout=1, stderr=2)
+    expanded_local_backup_path = os.path.expanduser(strftime(
+        '~/Backups/%y/%m/%d/mysite.sql.bz2'))
+    expanded_remote_backup_path = strftime('~/backups/%y/%m/%d/mysite.sql.bz2')
+    create_remote_backup.assert_called_once_with(
+        'myname', 'mysite.com', '2222', '~/public_html/mysite',
+        expanded_remote_backup_path, 'bzip2', False,
+        stdout=1, stderr=2)
+    create_dir_structure.assert_called_once_with(expanded_local_backup_path)
+    download_remote_backup.assert_called_once_with(
+        'myname', 'mysite.com', '2222',
+        expanded_remote_backup_path, expanded_local_backup_path,
+        stdout=1, stderr=2)
+    purge_remote_backup.assert_called_once_with(
+        'myname', 'mysite.com', '2222', expanded_remote_backup_path,
+        stdout=1, stderr=2)
+
+
+@patch('swb.local.create_remote_backup')
+@patch('swb.local.create_dir_structure')
+@patch('swb.local.download_remote_backup')
+@patch('swb.local.purge_remote_backup')
+@patch('swb.local.purge_oldest_backups')
+def test_back_up_max_local_backups(purge_oldest_backups, purge_remote_backup,
+                                   download_remote_backup,
+                                   create_dir_structure, create_remote_backup):
+    """should purge oldest backups if max_local_backups option is set"""
+    config = configparser.RawConfigParser()
+    config.read('tests/files/config.ini')
+    config.set('backup', 'max_local_backups', 3)
+    swb.back_up(config)
+    purge_oldest_backups.assert_called_once_with(
+        os.path.expanduser('~/Backups/%y/%m/%d/mysite.sql.bz2'), 3)
