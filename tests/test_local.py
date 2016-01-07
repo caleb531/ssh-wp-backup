@@ -182,3 +182,18 @@ def test_purge_empty_dirs(rmdir, iglob):
         call('/a/b/2010'),
         call('/a/b/2011')
     ])
+
+
+@patch('glob.iglob', side_effect=[
+    ['/a/b/2011/02/03', '/a/b/2011/02/04'],
+    ['/a/b/2011/02'],
+    ['/a/b/2010', '/a/b/2011'],
+    ['/a/b'],
+    ['/a']
+])
+@patch('os.rmdir', side_effect=OSError)
+def test_purge_empty_dirs_silent_fail(rmdir, iglob):
+    """should ignore non-empty directories when purging empty directories"""
+    swb.purge_empty_dirs('/a/b/*/*/*/c')
+    nose.assert_equal(iglob.call_count, 3)
+    nose.assert_equal(rmdir.call_count, 5)
