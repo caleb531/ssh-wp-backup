@@ -147,18 +147,17 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
 
     backup_path = os.path.expanduser(backup_path)
     create_dir_structure(backup_path)
+    db_info = get_db_info(wordpress_path)
 
     if full_backup == 'True':
 
         # backup_path is assumed to refer to entire site directory backup
-        db_info = get_db_info(wordpress_path)
         db_contents = dump_uncompressed_db(
             db_info['name'], db_info['host'],
             db_info['user'], db_info['password'])
         create_full_backup(
             wordpress_path, db_contents,
             backup_path, backup_compressor)
-        verify_backup_integrity(backup_path)
 
     else:
 
@@ -168,7 +167,8 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
             db_info['name'], db_info['host'],
             db_info['user'], db_info['password'],
             backup_compressor, backup_path)
-        verify_backup_integrity(backup_path)
+
+    verify_backup_integrity(backup_path)
 
 
 # Decompress the given backup file to a database file in the same directory

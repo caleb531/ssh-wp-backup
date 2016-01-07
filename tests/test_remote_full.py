@@ -5,8 +5,8 @@ import os.path
 import subprocess
 import nose.tools as nose
 import swb.remote as swb
-from mock import patch
-from tests.fixtures.remote import TEMP_DIR, run_back_up, run_restore
+from mock import ANY, patch
+from tests.fixtures.remote import TEMP_DIR, WP_PATH, run_back_up, run_restore
 from tests.fixtures.remote import set_up, tear_down
 
 
@@ -121,3 +121,15 @@ def test_process_wait_restore():
     """should wait for each process to finish when restoring"""
     run_restore(backup_path=BACKUP_PATH, full_backup=FULL_BACKUP)
     nose.assert_equal(swb.subprocess.Popen.return_value.wait.call_count, 2)
+
+
+@nose.with_setup(set_up, tear_down)
+@patch('tarfile.open')
+def test_tar(tarfile_open):
+    """should wait for each process to finish when restoring"""
+    run_back_up(backup_path=BACKUP_PATH, full_backup=FULL_BACKUP)
+    tar_path = os.path.splitext(BACKUP_PATH)[0]
+    tarfile_open.assert_called_once_with(tar_path, 'w')
+    tarfile_open.return_value.add.assert_called_once_with(
+        WP_PATH, arcname='mysite')
+    tarfile_open.return_value.addfile.assert_called_once_with(ANY, ANY)
