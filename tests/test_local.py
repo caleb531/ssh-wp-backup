@@ -81,3 +81,27 @@ def test_exec_on_remote_nonzero_return(exit, local_open, popen):
     swb.exec_on_remote(
         'a', 'b.com', '2222', 'c', ['d', 'e', 'f', 'g'], stdout=1, stderr=2)
     exit.assert_called_once_with(3)
+
+
+@patch('subprocess.Popen')
+def test_transfer_file_download(popen):
+    """should download backup from remote server when backing up"""
+    swb.transfer_file(
+        'myname', 'mysite.com', '2222', 'a/b c/d', 'e/f g/h',
+        action='download', stdout=1, stderr=2)
+    popen.assert_called_once_with(
+        ['scp', '-P 2222', 'myname@mysite.com:\'a/b c/d\'', 'e/f g/h'],
+        stdout=1, stderr=2)
+    popen.return_value.wait.assert_called_once_with()
+
+
+@patch('subprocess.Popen')
+def test_transfer_file_upload(popen):
+    """should upload backup to remote server when restoring"""
+    swb.transfer_file(
+        'myname', 'mysite.com', '2222', 'a/b c/d', 'e/f g/h',
+        action='upload', stdout=1, stderr=2)
+    popen.assert_called_once_with(
+        ['scp', '-P 2222', 'a/b c/d', 'myname@mysite.com:\'e/f g/h\''],
+        stdout=1, stderr=2)
+    popen.return_value.wait.assert_called_once_with()
