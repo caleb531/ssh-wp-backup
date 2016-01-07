@@ -197,3 +197,24 @@ def test_purge_empty_dirs_silent_fail(rmdir, iglob):
     swb.purge_empty_dirs('/a/b/*/*/*/c')
     nose.assert_equal(iglob.call_count, 3)
     nose.assert_equal(rmdir.call_count, 5)
+
+
+@patch('glob.iglob', return_value=[
+    'a/2015/02/03/b',
+    'a/2013/04/05/b',
+    'a/2016/01/02/b',
+    'a/2012/05/06/b',
+    'a/2014/03/04/b'
+])
+@patch('os.remove')
+@patch('swb.local.get_last_modified_time', side_effect=[5, 3, 6, 2, 4])
+@patch('swb.local.purge_empty_dirs')
+def test_purge_oldest_backups(purge_empty_dirs, get_last_modified_time,
+                              remove, iglob):
+    """should purge oldest local backups"""
+    swb.purge_oldest_backups('a/%y/%m/%d/b', max_local_backups=3)
+    nose.assert_equal(remove.call_args_list, [
+        call('a/2012/05/06/b'),
+        call('a/2013/04/05/b')
+    ])
+    purge_empty_dirs.assert_called_once_with('a/*/*/*/b')
