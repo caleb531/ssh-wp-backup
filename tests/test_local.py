@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 import configparser
-# import os
 import nose.tools as nose
 import swb.local as swb
-from mock import patch
+from mock import NonCallableMock, patch
 # from tests.fixtures.local import set_up, tear_down, mock_backups
 
 
@@ -56,3 +55,29 @@ def test_quote_arg_py32(shlex):
     nose.assert_false(hasattr(shlex, 'quote'))
     quoted_arg = swb.quote_arg('a/b c/d')
     nose.assert_equal(quoted_arg, '\'a/b c/d\'')
+
+
+@patch('subprocess.Popen', return_value=NonCallableMock(returncode=0))
+@patch('swb.local.open')
+def test_exec_on_remote(local_open, popen):
+    """should execute script on remote server"""
+    swb.exec_on_remote(
+        'myname', 'mysite.com', '2222',
+        'back-up', ['~/public_html/mysite', 'bzip2 -v', 'a/b c/d', 'False'],
+        stdout=1, stderr=2)
+    popen.assert_called_once_with([
+        'ssh', '-p 2222', 'myname@mysite.com',
+        'python3', '-', 'back-up', '~/\'public_html/mysite\'',
+        '\'bzip2 -v\'', '\'a/b c/d\'', 'False'],
+        stdin=local_open.return_value.__enter__(), stdout=1, stderr=2)
+    popen.return_value.wait.assert_called_once_with()
+
+
+@patch('subprocess.Popen', return_value=NonCallableMock(returncode=3))
+@patch('swb.local.open')
+@patch('sys.exit')
+def test_exec_on_remote_nonzero_return(exit, local_open, popen):
+    """should exit script if nonzero status code is returned"""
+    swb.exec_on_remote(
+        'a', 'b.com', '2222', 'c', ['d', 'e', 'f', 'g'], stdout=1, stderr=2)
+    exit.assert_called_once_with(3)
