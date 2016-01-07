@@ -35,7 +35,7 @@ def get_db_info(wordpress_path):
     db_info = {}
 
     # Find all PHP constant definitions pertaining to database
-    matches = re.finditer('define\(\'DB_([A-Z]+)\', \'(.*?)\'\)',
+    matches = re.finditer('define\(\s*\'DB_([A-Z]+)\',\s*\'(.*?)\'\s*\)',
                           wp_config_contents)
     for match in matches:
         key = match.group(1).lower()
