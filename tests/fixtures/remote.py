@@ -1,7 +1,28 @@
 #!/usr/bin/env python3
 
+import os
+import os.path
+import shutil
 import subprocess
+import tempfile
+import swb.remote as swb
 from mock import Mock, mock_open, patch
+
+
+TEMP_DIR = os.path.join(tempfile.gettempdir(), 'swb-remote')
+WP_PATH = 'tests/files/mysite'
+BACKUP_COMPRESSOR = 'bzip2 -v'
+BACKUP_DECOMPRESSOR = 'bzip2 -d'
+
+
+def run_back_up(backup_path, full_backup,
+                wp_path=WP_PATH, backup_compressor=BACKUP_COMPRESSOR):
+    swb.back_up(wp_path, backup_compressor, backup_path, full_backup)
+
+
+def run_restore(backup_path, full_backup,
+                wp_path=WP_PATH, backup_decompressor=BACKUP_DECOMPRESSOR):
+    swb.restore(wp_path, backup_path, backup_decompressor)
 
 
 WP_CONFIG_PATH = 'tests/files/mysite/wp-config.php'
@@ -22,6 +43,10 @@ patch_open = None
 
 def set_up():
     global patch_open
+    try:
+        os.makedirs(TEMP_DIR)
+    except OSError:
+        pass
     patch_makedirs.start()
     patch_remove.start()
     patch_rmdir.start()
@@ -41,3 +66,7 @@ def tear_down():
     subprocess.Popen.reset_mock()
     patch_popen.stop()
     patch_open.stop()
+    try:
+        shutil.rmtree(TEMP_DIR)
+    except OSError:
+        pass
