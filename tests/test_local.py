@@ -60,7 +60,7 @@ def test_quote_arg_py32(shlex):
 
 
 @patch('subprocess.Popen', return_value=NonCallableMock(returncode=0))
-@patch('swb.local.open')
+@patch('builtins.open')
 def test_exec_on_remote(local_open, popen):
     """should execute script on remote server"""
     swb.exec_on_remote(
@@ -77,7 +77,7 @@ def test_exec_on_remote(local_open, popen):
 
 
 @patch('subprocess.Popen', return_value=NonCallableMock(returncode=3))
-@patch('swb.local.open')
+@patch('builtins.open')
 @patch('sys.exit')
 def test_exec_on_remote_nonzero_return(exit, local_open, popen):
     """should exit script if nonzero status code is returned"""
