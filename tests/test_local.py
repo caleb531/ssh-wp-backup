@@ -159,9 +159,9 @@ def test_get_last_modified_time():
 
 
 @patch('glob.iglob', side_effect=[
-    ['/a/b/2011/02/03'],
+    ['/a/b/2011/02/03', '/a/b/2011/02/04'],
     ['/a/b/2011/02'],
-    ['/a/b/2011'],
+    ['/a/b/2010', '/a/b/2011'],
     ['/a/b'],
     ['/a']
 ])
@@ -177,6 +177,8 @@ def test_purge_empty_dirs(rmdir, iglob):
     ])
     nose.assert_equal(rmdir.call_args_list, [
         call('/a/b/2011/02/03'),
+        call('/a/b/2011/02/04'),
         call('/a/b/2011/02'),
+        call('/a/b/2010'),
         call('/a/b/2011')
     ])
