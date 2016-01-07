@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import configparser
+import os
 import nose.tools as nose
 import swb.local as swb
 from mock import NonCallableMock, patch
@@ -148,3 +149,10 @@ def test_purge_remote_backup(exec_on_remote):
     exec_on_remote.assert_called_once_with(
         'myname', 'mysite.com', '2222', 'purge-backup', ['a/b c/d'],
         stdout=1, stderr=2)
+
+
+def test_get_last_modified_time():
+    """should retrieve correct last modified time of the supplied path"""
+    nose.assert_equal(
+        swb.get_last_modified_time('swb/local.py'),
+        os.stat('swb/local.py').st_mtime)
