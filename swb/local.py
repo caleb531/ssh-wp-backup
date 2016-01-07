@@ -231,7 +231,7 @@ def back_up(config, *, stdout=None, stderr=None):
         config.get('paths', 'wordpress'),
         expanded_remote_backup_path,
         config.get('backup', 'compressor'),
-        config.getboolean('backup', 'full_backup'),
+        config.getboolean('backup', 'full_backup', fallback=False),
         stdout=stdout, stderr=stderr)
 
     create_dir_structure(expanded_local_backup_path)
