@@ -18,45 +18,6 @@ program_dir = os.path.dirname(os.path.realpath(__file__))
 remote_driver_path = os.path.join(program_dir, 'remote.py')
 
 
-# Parse command line arguments passed to the local driver
-def parse_cli_args():
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        '--quiet',
-        '-q',
-        action='store_true',
-        help='silences stdout and stderr')
-
-    parser.add_argument(
-        'config_path',
-        help='the path to a configuration file (.ini)')
-
-    parser.add_argument(
-        '--restore',
-        '-r',
-        help='the path to a compressed backup file from which to restore')
-
-    parser.add_argument(
-        '--force',
-        '-f',
-        action='store_true',
-        help='bypasses the confirmation prompt when restoring from backup')
-
-    cli_args = parser.parse_args()
-    return cli_args
-
-
-# Parse configuration files at given paths into object
-def parse_config(config_path):
-
-    config = configparser.RawConfigParser()
-    config.read(config_path)
-
-    return config
-
-
 # Create intermediate directories in local backup path if necessary
 def create_dir_structure(local_backup_path):
 
@@ -329,6 +290,45 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         wordpress_path=config.get('paths', 'wordpress'),
         remote_backup_path=config.get('paths', 'remote_backup'),
         backup_decompressor=config.get('backup', 'decompressor'))
+
+
+# Parse command line arguments passed to the local driver
+def parse_cli_args():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--quiet',
+        '-q',
+        action='store_true',
+        help='silences stdout and stderr')
+
+    parser.add_argument(
+        'config_path',
+        help='the path to a configuration file (.ini)')
+
+    parser.add_argument(
+        '--restore',
+        '-r',
+        help='the path to a compressed backup file from which to restore')
+
+    parser.add_argument(
+        '--force',
+        '-f',
+        action='store_true',
+        help='bypasses the confirmation prompt when restoring from backup')
+
+    cli_args = parser.parse_args()
+    return cli_args
+
+
+# Parse configuration files at given paths into object
+def parse_config(config_path):
+
+    config = configparser.RawConfigParser()
+    config.read(config_path)
+
+    return config
 
 
 def main():
