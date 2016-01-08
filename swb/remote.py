@@ -79,7 +79,7 @@ def dump_compressed_db(db_name, db_host, db_user, db_password,
 
 
 # Dump MySQL database to uncompressed file at the given path
-def dump_uncompressed_db(db_name, db_host, db_user, db_password):
+def get_uncompressed_db(db_name, db_host, db_user, db_password):
 
     mysqldump = get_mysqldump(db_name, db_host, db_user, db_password)
     db_contents = mysqldump.communicate()[0]
@@ -152,7 +152,7 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
     if full_backup == 'True':
 
         # backup_path is assumed to refer to entire site directory backup
-        db_contents = dump_uncompressed_db(
+        db_contents = get_uncompressed_db(
             db_info['name'], db_info['host'],
             db_info['user'], db_info['password'])
         create_full_backup(

@@ -74,3 +74,36 @@ def test_dump_compressed_db(builtin_open):
             nose.assert_equal(
                 manager.mock_calls[3],
                 call.popen().wait())
+
+
+@patch('swb.remote.get_mysqldump', return_value=Mock(communicate=Mock(
+       return_value=[b'db output', b'db error'])))
+def test_get_uncompressed_db(get_mysqldump):
+    """should return uncompressed database to designated location on remote"""
+    db_contents = swb.get_uncompressed_db(
+        db_name='mydb', db_host='myhost',
+        db_user='myname', db_password='mypassword')
+    nose.assert_equal(db_contents, b'db output')
+    nose.assert_list_equal(get_mysqldump.return_value.mock_calls, [
+        call.communicate(), call.wait()])
+
+
+@patch('os.path.getsize', return_value=20480)
+def test_verify_backup_integrity_valid(getsize):
+    """should validate a given valid backup file"""
+    swb.verify_backup_integrity('a/b c/d')
+    getsize.assert_called_once_with('a/b c/d')
+
+
+@patch('os.path.getsize', return_value=20)
+def test_verify_backup_integrity_invalid(getsize):
+    """should invalidate a given corrupted backup file"""
+    with nose.assert_raises(OSError):
+        swb.verify_backup_integrity('a/b c/d')
+
+
+@patch('os.remove')
+def test_purge_downloaded_backup(remove):
+    """should purge the downloaded backup file by removing it"""
+    swb.purge_downloaded_backup('a/b c/d')
+    remove.assert_called_once_with('a/b c/d')
