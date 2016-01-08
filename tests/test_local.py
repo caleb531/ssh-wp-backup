@@ -64,7 +64,7 @@ def test_quote_arg_py32(shlex):
 
 @patch('subprocess.Popen', return_value=NonCallableMock(returncode=0))
 @patch('builtins.open')
-def test_exec_on_remote(local_open, popen):
+def test_exec_on_remote(builtin_open, popen):
     """should execute script on remote server"""
     swb.exec_on_remote(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
@@ -75,14 +75,14 @@ def test_exec_on_remote(local_open, popen):
         'ssh', '-p 2222', 'myname@mysite.com',
         'python3', '-', 'back-up', '~/\'public_html/mysite\'',
         '\'bzip2 -v\'', '\'a/b c/d\'', 'False'],
-        stdin=local_open.return_value.__enter__(), stdout=1, stderr=2)
+        stdin=builtin_open.return_value.__enter__(), stdout=1, stderr=2)
     popen.return_value.wait.assert_called_once_with()
 
 
 @patch('subprocess.Popen', return_value=NonCallableMock(returncode=3))
 @patch('builtins.open')
 @patch('sys.exit')
-def test_exec_on_remote_nonzero_return(exit, local_open, popen):
+def test_exec_on_remote_nonzero_return(exit, builtin_open, popen):
     """should exit script if nonzero status code is returned"""
     swb.exec_on_remote(
         ssh_user='a', ssh_hostname='b.com', ssh_port='2222',
@@ -304,3 +304,26 @@ def test_back_up_max_local_backups(purge_oldest_backups, purge_remote_backup,
         local_backup_path=os.path.expanduser(
             '~/Backups/%y/%m/%d/mysite.sql.bz2'),
         max_local_backups=3)
+
+
+@patch('sys.argv', [swb.__file__, 'tests/files/config.ini'])
+@patch('swb.local.back_up')
+@patch('swb.local.parse_config')
+def test_main_back_up(parse_config, back_up):
+    """should correctly run main driver"""
+    swb.main()
+    back_up.assert_called_once_with(
+        parse_config.return_value, stdout=None, stderr=None)
+
+
+@patch('sys.argv', [swb.__file__, '-q', 'tests/files/config.ini'])
+@patch('builtins.open')
+@patch('swb.local.back_up')
+@patch('swb.local.parse_config')
+def test_main_quiet(parse_config, back_up, builtin_open):
+    """should silent stdout/stderr when utility is run in quiet mode"""
+    swb.main()
+    devnull = builtin_open.return_value.__enter__()
+    back_up.assert_called_once_with(
+        parse_config.return_value,
+        stdout=devnull, stderr=devnull)
