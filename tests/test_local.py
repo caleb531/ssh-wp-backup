@@ -6,8 +6,7 @@ import os.path
 import nose.tools as nose
 import swb.local as swb
 from time import strftime
-from mock import call, NonCallableMock, patch
-# from tests.fixtures.local import set_up, tear_down, mock_backups
+from mock import ANY, call, NonCallableMock, patch
 
 
 def test_parse_config():
@@ -310,7 +309,7 @@ def test_back_up_purge_oldest(create_dir_structure, create_remote_backup,
 @patch('swb.local.back_up')
 @patch('sys.argv', [swb.__file__, 'tests/files/config.ini'])
 def test_main_back_up(back_up, parse_config):
-    """should correctly run main driver"""
+    """should run backup procedure by default when utility is run"""
     swb.main()
     back_up.assert_called_once_with(
         parse_config.return_value, stdout=None, stderr=None)
@@ -321,9 +320,53 @@ def test_main_back_up(back_up, parse_config):
 @patch('sys.argv', [swb.__file__, '-q', 'tests/files/config.ini'])
 @patch('builtins.open')
 def test_main_quiet(builtin_open, back_up, parse_config):
-    """should silent stdout/stderr when utility is run in quiet mode"""
+    """should silence stdout/stderr when utility is run in quiet mode"""
     swb.main()
     devnull = builtin_open.return_value.__enter__()
     back_up.assert_called_once_with(
         parse_config.return_value,
         stdout=devnull, stderr=devnull)
+
+
+@patch('swb.local.restore')
+@patch('swb.local.parse_config')
+@patch('sys.argv', [swb.__file__, 'tests/files/config.ini', '-r', 'a.tar.bz2'])
+@patch('builtins.print')
+@patch('builtins.input', return_value='y')
+def test_main_restore(builtin_input, builtin_print, parse_config, restore):
+    """should run restore procedure when -r/--restore is passed to utility"""
+    swb.main()
+    builtin_input.assert_called_once_with(ANY)
+    restore.assert_called_once_with(
+        parse_config.return_value, local_backup_path='a.tar.bz2',
+        stdout=None, stderr=None)
+
+
+@patch('swb.local.restore')
+@patch('swb.local.parse_config')
+@patch('sys.argv', [swb.__file__, 'tests/files/config.ini', '-r', 'a.tar.bz2'])
+@patch('builtins.print')
+@patch('builtins.input', return_value='n')
+def test_main_restore_cancel(builtin_input, builtin_print,
+                             parse_config, restore):
+    """should cancel restore procedure when user cancels confirmation"""
+    with nose.assert_raises(Exception):
+        swb.main()
+    restore.assert_not_called()
+
+
+@patch('swb.local.restore')
+@patch('swb.local.parse_config')
+@patch('sys.argv', [
+    swb.__file__, 'tests/files/config.ini',
+    '-fr', 'a.tar.bz2'])
+@patch('builtins.print')
+@patch('builtins.input', return_value='y')
+def test_main_restore_force(builtin_input, builtin_print,
+                            parse_config, restore):
+    """should force restore procedure when -fr is passed to utility"""
+    swb.main()
+    builtin_input.assert_not_called()
+    restore.assert_called_once_with(
+        parse_config.return_value, local_backup_path='a.tar.bz2',
+        stdout=None, stderr=None)
