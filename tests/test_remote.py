@@ -28,6 +28,13 @@ def test_create_dir_structure(makedirs):
     makedirs.assert_called_once_with('a/b c')
 
 
+@patch('os.makedirs', side_effect=OSError)
+def test_create_dir_structure_silent_fail(makedirs):
+    """should fail silently if directory structure already exists"""
+    swb.create_dir_structure('a/b c/d')
+    makedirs.assert_called_once_with('a/b c')
+
+
 @patch('swb.remote.read_wp_config', return_value=WP_CONFIG_CONTENTS)
 def test_get_db_info(read_wp_config):
     """should parsedatabase info from wp-config.php"""
@@ -99,10 +106,12 @@ def test_verify_backup_integrity_valid(getsize):
 
 
 @patch('os.path.getsize', return_value=20)
-def test_verify_backup_integrity_invalid(getsize):
+@patch('os.remove')
+def test_verify_backup_integrity_invalid(remove, getsize):
     """should invalidate a given corrupted backup file"""
     with nose.assert_raises(OSError):
         swb.verify_backup_integrity('a/b c/d')
+    remove.assert_called_once_with('a/b c/d')
 
 
 @patch('os.remove')
@@ -194,6 +203,36 @@ def test_back_up_full(create_dir_structure, create_full_backup,
         'path/to/my backup.tar.bz2')
 
 
+@patch('swb.remote.verify_backup_integrity')
+@patch('swb.remote.dump_compressed_db')
+@patch('swb.remote.get_db_info', return_value={
+    'name': 'mydb',
+    'host': 'myhost',
+    'user': 'myname',
+    'password': 'mypassword'
+})
+@patch('swb.remote.create_full_backup')
+@patch('swb.remote.create_dir_structure')
+def test_back_up_db(create_dir_structure, create_full_backup,
+                    get_db_info, dump_compressed_db,
+                    verify_backup_integrity):
+    """should perform a full backup"""
+    swb.back_up(
+        wordpress_path='path/to/my site',
+        backup_compressor='bzip2 -v',
+        backup_path='path/to/my backup.sql.bz2',
+        full_backup='False')
+    create_dir_structure.assert_called_once_with(
+        'path/to/my backup.sql.bz2')
+    dump_compressed_db.assert_called_once_with(
+        db_name='mydb', db_host='myhost',
+        db_user='myname', db_password='mypassword',
+        backup_path='path/to/my backup.sql.bz2',
+        backup_compressor='bzip2 -v')
+    verify_backup_integrity.assert_called_once_with(
+        'path/to/my backup.sql.bz2')
+
+
 @patch('subprocess.Popen', spec=subprocess.Popen)
 def test_decompress_backup(popen):
     """should decompress the given backup file using the given decompressor"""
@@ -267,3 +306,30 @@ def test_restore(decompress_backup, get_db_info, purge_restored_backup,
     purge_restored_backup.assert_called_once_with(
         backup_path=os.path.expanduser('~/path/to/my site.sql.bz2'),
         db_path=os.path.expanduser('~/path/to/my site.sql'))
+
+
+@patch('swb.remote.back_up')
+@patch('sys.argv', [swb.__file__, 'back-up', 'a', 'b', 'c', 'd'])
+@patch('builtins.print')
+def test_main_back_up(builtin_print, back_up):
+    """should run backup procedure by default when remote script is run"""
+    swb.main()
+    back_up.assert_called_once_with('a', 'b', 'c', 'd')
+
+
+@patch('swb.remote.restore')
+@patch('sys.argv', [swb.__file__, 'restore', 'a', 'b', 'c', 'd'])
+@patch('builtins.print')
+def test_main_restore(builtin_print, restore):
+    """should run restore procedure when remote script is run"""
+    swb.main()
+    restore.assert_called_once_with('a', 'b', 'c', 'd')
+
+
+@patch('swb.remote.purge_downloaded_backup')
+@patch('sys.argv', [swb.__file__, 'purge-backup', 'a', 'b', 'c', 'd'])
+@patch('builtins.print')
+def test_main_purge_downloaded(builtin_print, purge_downloaded_backup):
+    """should run purge procedure when remote script is run"""
+    swb.main()
+    purge_downloaded_backup.assert_called_once_with('a', 'b', 'c', 'd')
