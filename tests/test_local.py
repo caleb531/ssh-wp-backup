@@ -85,7 +85,9 @@ def test_exec_on_remote(local_open, popen):
 def test_exec_on_remote_nonzero_return(exit, local_open, popen):
     """should exit script if nonzero status code is returned"""
     swb.exec_on_remote(
-        'a', 'b.com', '2222', 'c', ['d', 'e', 'f', 'g'], stdout=1, stderr=2)
+        ssh_user='a', ssh_hostname='b.com', ssh_port='2222',
+        action='c', action_args=['d', 'e', 'f', 'g'],
+        stdout=1, stderr=2)
     exit.assert_called_once_with(3)
 
 
@@ -121,11 +123,11 @@ def test_create_remote_backup(exec_on_remote):
     swb.create_remote_backup(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
-        backup_compressor='bzip2 -v', full_backup=False,
+        backup_compressor='bzip2 -v', full_backup=True,
         stdout=1, stderr=2)
     exec_on_remote.assert_called_once_with(
-        'myname', 'mysite.com', '2222', 'back-up',
-        ['a/b c/d', 'bzip2 -v', 'e/f g/h', False],
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        action='back-up', action_args=['a/b c/d', 'bzip2 -v', 'e/f g/h', True],
         stdout=1, stderr=2)
 
 
@@ -137,8 +139,35 @@ def test_download_remote_backup(transfer_file):
         remote_backup_path='a/b c/d', local_backup_path='e/f g/h',
         stdout=1, stderr=2)
     transfer_file.assert_called_once_with(
-        'myname', 'mysite.com', '2222',
-        'a/b c/d', 'e/f g/h', 'download',
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        src_path='a/b c/d', dest_path='e/f g/h',
+        action='download', stdout=1, stderr=2)
+
+
+@patch('swb.local.transfer_file')
+def test_upload_local_backup(transfer_file):
+    """should upload local backup when restoring"""
+    swb.upload_local_backup(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        remote_backup_path='a/b c/d', local_backup_path='e/f g/h',
+        stdout=1, stderr=2)
+    transfer_file.assert_called_once_with(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        src_path='e/f g/h', dest_path='a/b c/d',
+        action='upload', stdout=1, stderr=2)
+
+
+@patch('swb.local.exec_on_remote')
+def test_restore_remote_backup(exec_on_remote):
+    """should restore remote backup after upload"""
+    swb.restore_remote_backup(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
+        backup_decompressor='bzip2 -v',
+        stdout=1, stderr=2)
+    exec_on_remote.assert_called_once_with(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        action='restore', action_args=['a/b c/d', 'e/f g/h', 'bzip2 -v'],
         stdout=1, stderr=2)
 
 
@@ -149,7 +178,8 @@ def test_purge_remote_backup(exec_on_remote):
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         remote_backup_path='a/b c/d', stdout=1, stderr=2)
     exec_on_remote.assert_called_once_with(
-        'myname', 'mysite.com', '2222', 'purge-backup', ['a/b c/d'],
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        action='purge-backup', action_args=['a/b c/d'],
         stdout=1, stderr=2)
 
 
@@ -238,16 +268,22 @@ def test_back_up(purge_oldest_backups, purge_remote_backup,
         '~/Backups/%y/%m/%d/mysite.sql.bz2'))
     expanded_remote_backup_path = strftime('~/backups/%y/%m/%d/mysite.sql.bz2')
     create_remote_backup.assert_called_once_with(
-        'myname', 'mysite.com', '2222', '~/public_html/mysite',
-        expanded_remote_backup_path, 'bzip2', False,
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        wordpress_path='~/public_html/mysite',
+        remote_backup_path=expanded_remote_backup_path,
+        backup_compressor='bzip2',
+        full_backup=False,
         stdout=1, stderr=2)
-    create_dir_structure.assert_called_once_with(expanded_local_backup_path)
+    create_dir_structure.assert_called_once_with(
+        local_backup_path=expanded_local_backup_path)
     download_remote_backup.assert_called_once_with(
-        'myname', 'mysite.com', '2222',
-        expanded_remote_backup_path, expanded_local_backup_path,
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        remote_backup_path=expanded_remote_backup_path,
+        local_backup_path=expanded_local_backup_path,
         stdout=1, stderr=2)
     purge_remote_backup.assert_called_once_with(
-        'myname', 'mysite.com', '2222', expanded_remote_backup_path,
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        remote_backup_path=expanded_remote_backup_path,
         stdout=1, stderr=2)
 
 
@@ -265,4 +301,6 @@ def test_back_up_max_local_backups(purge_oldest_backups, purge_remote_backup,
     config.set('backup', 'max_local_backups', 3)
     swb.back_up(config)
     purge_oldest_backups.assert_called_once_with(
-        os.path.expanduser('~/Backups/%y/%m/%d/mysite.sql.bz2'), 3)
+        local_backup_path=os.path.expanduser(
+            '~/Backups/%y/%m/%d/mysite.sql.bz2'),
+        max_local_backups=3)
