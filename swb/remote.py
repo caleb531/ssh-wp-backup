@@ -92,6 +92,7 @@ def get_uncompressed_db(db_name, db_host, db_user, db_password):
 def verify_backup_integrity(backup_path):
 
     if os.path.getsize(backup_path) < 1024:
+        os.remove(backup_path)
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
@@ -102,11 +103,15 @@ def purge_downloaded_backup(backup_path):
 
 
 # Compressed an existing tar backup file using the chosen compressor
-def compress_tar(tar_path, backup_path, backup_compressor):
+def compress_tar(tar_out, backup_path, backup_compressor):
 
-    compressor = subprocess.Popen(
-        shlex.split(backup_compressor) + [backup_path, tar_path])
-    compressor.wait()
+    with open(backup_path, 'w') as backup_file:
+
+        compressor = subprocess.Popen(
+            shlex.split(backup_compressor),
+            stdin=subprocess.PIPE, stdout=backup_file)
+        compressor.communicate(input=tar_out.getvalue())
+        compressor.wait()
 
 
 # Add a database to the given tar file under the given name
@@ -125,21 +130,15 @@ def add_db_to_tar(tar_file, db_file_name, db_contents):
 def create_full_backup(wordpress_path, db_contents,
                        backup_path, backup_compressor):
 
-    backup_name = os.path.basename(backup_path)
-    tar_name = os.path.splitext(backup_name)[0]
-
     wordpress_site_name = os.path.basename(wordpress_path)
     db_file_name = '{}.sql'.format(wordpress_site_name)
 
-    backup_pwd_path = os.path.dirname(backup_path)
-    tar_path = os.path.join(backup_pwd_path, tar_name)
+    tar_out = io.BytesIO()
+    with tarfile.open(fileobj=tar_out, mode='w') as tar_file:
 
-    tar_file = tarfile.open(tar_path, 'w')
-    tar_file.add(wordpress_path, arcname=wordpress_site_name)
-    add_db_to_tar(tar_file, db_file_name, db_contents)
-    tar_file.close()
-
-    compress_tar(tar_path, backup_path, backup_compressor)
+        tar_file.add(wordpress_path, arcname=wordpress_site_name)
+        add_db_to_tar(tar_file, db_file_name, db_contents)
+        compress_tar(tar_out, backup_path, backup_compressor)
 
 
 # Back up WordPress database or installation
