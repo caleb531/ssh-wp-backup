@@ -79,10 +79,10 @@ def test_exec_on_remote(builtin_open, popen):
     popen.return_value.wait.assert_called_once_with()
 
 
+@patch('sys.exit')
 @patch('subprocess.Popen', return_value=NonCallableMock(returncode=3))
 @patch('builtins.open')
-@patch('sys.exit')
-def test_exec_on_remote_nonzero_return(exit, builtin_open, popen):
+def test_exec_on_remote_nonzero_return(builtin_open, popen, exit):
     """should exit script if nonzero status code is returned"""
     swb.exec_on_remote(
         ssh_user='a', ssh_hostname='b.com', ssh_port='2222',
@@ -190,6 +190,7 @@ def test_get_last_modified_time():
         os.stat('swb/local.py').st_mtime)
 
 
+@patch('os.rmdir')
 @patch('glob.iglob', side_effect=[
     ['/a/b/2011/02/03', '/a/b/2011/02/04'],
     ['/a/b/2011/02'],
@@ -197,8 +198,7 @@ def test_get_last_modified_time():
     ['/a/b'],
     ['/a']
 ])
-@patch('os.rmdir')
-def test_purge_empty_dirs(rmdir, iglob):
+def test_purge_empty_dirs(iglob, rmdir):
     """should purge empty timestamped directories"""
     swb.purge_empty_dirs('/a/b/*/*/*/c')
     nose.assert_equal(iglob.call_count, 3)
@@ -216,6 +216,7 @@ def test_purge_empty_dirs(rmdir, iglob):
     ])
 
 
+@patch('os.rmdir', side_effect=OSError)
 @patch('glob.iglob', side_effect=[
     ['/a/b/2011/02/03', '/a/b/2011/02/04'],
     ['/a/b/2011/02'],
@@ -223,14 +224,16 @@ def test_purge_empty_dirs(rmdir, iglob):
     ['/a/b'],
     ['/a']
 ])
-@patch('os.rmdir', side_effect=OSError)
-def test_purge_empty_dirs_silent_fail(rmdir, iglob):
+def test_purge_empty_dirs_silent_fail(iglob, rmdir):
     """should ignore non-empty directories when purging empty directories"""
     swb.purge_empty_dirs('/a/b/*/*/*/c')
     nose.assert_equal(iglob.call_count, 3)
     nose.assert_equal(rmdir.call_count, 5)
 
 
+@patch('swb.local.get_last_modified_time', side_effect=[5, 3, 6, 2, 4])
+@patch('swb.local.purge_empty_dirs')
+@patch('os.remove')
 @patch('glob.iglob', return_value=[
     'a/2015/02/03/b',
     'a/2013/04/05/b',
@@ -238,11 +241,8 @@ def test_purge_empty_dirs_silent_fail(rmdir, iglob):
     'a/2012/05/06/b',
     'a/2014/03/04/b'
 ])
-@patch('os.remove')
-@patch('swb.local.get_last_modified_time', side_effect=[5, 3, 6, 2, 4])
-@patch('swb.local.purge_empty_dirs')
-def test_purge_oldest_backups(purge_empty_dirs, get_last_modified_time,
-                              remove, iglob):
+def test_purge_oldest_backups(iglob, remove, purge_empty_dirs,
+                              get_last_modified_time):
     """should purge oldest local backups"""
     swb.purge_oldest_backups('a/%y/%m/%d/b', max_local_backups=3)
     nose.assert_equal(remove.call_args_list, [
@@ -252,14 +252,14 @@ def test_purge_oldest_backups(purge_empty_dirs, get_last_modified_time,
     purge_empty_dirs.assert_called_once_with('a/*/*/*/b')
 
 
-@patch('swb.local.create_remote_backup')
-@patch('swb.local.create_dir_structure')
-@patch('swb.local.download_remote_backup')
 @patch('swb.local.purge_remote_backup')
 @patch('swb.local.purge_oldest_backups')
-def test_back_up(purge_oldest_backups, purge_remote_backup,
-                 download_remote_backup, create_dir_structure,
-                 create_remote_backup):
+@patch('swb.local.download_remote_backup')
+@patch('swb.local.create_remote_backup')
+@patch('swb.local.create_dir_structure')
+def test_back_up(create_dir_structure, create_remote_backup,
+                 download_remote_backup, purge_oldest_backups,
+                 purge_remote_backup):
     """should run correct backup procedure"""
     config = configparser.RawConfigParser()
     config.read('tests/files/config.ini')
@@ -287,14 +287,14 @@ def test_back_up(purge_oldest_backups, purge_remote_backup,
         stdout=1, stderr=2)
 
 
-@patch('swb.local.create_remote_backup')
-@patch('swb.local.create_dir_structure')
-@patch('swb.local.download_remote_backup')
 @patch('swb.local.purge_remote_backup')
 @patch('swb.local.purge_oldest_backups')
-def test_back_up_max_local_backups(purge_oldest_backups, purge_remote_backup,
-                                   download_remote_backup,
-                                   create_dir_structure, create_remote_backup):
+@patch('swb.local.download_remote_backup')
+@patch('swb.local.create_remote_backup')
+@patch('swb.local.create_dir_structure')
+def test_back_up_purge_oldest(create_dir_structure, create_remote_backup,
+                              download_remote_backup, purge_oldest_backups,
+                              purge_remote_backup):
     """should purge oldest backups if max_local_backups option is set"""
     config = configparser.RawConfigParser()
     config.read('tests/files/config.ini')
@@ -306,21 +306,21 @@ def test_back_up_max_local_backups(purge_oldest_backups, purge_remote_backup,
         max_local_backups=3)
 
 
-@patch('sys.argv', [swb.__file__, 'tests/files/config.ini'])
-@patch('swb.local.back_up')
 @patch('swb.local.parse_config')
-def test_main_back_up(parse_config, back_up):
+@patch('swb.local.back_up')
+@patch('sys.argv', [swb.__file__, 'tests/files/config.ini'])
+def test_main_back_up(back_up, parse_config):
     """should correctly run main driver"""
     swb.main()
     back_up.assert_called_once_with(
         parse_config.return_value, stdout=None, stderr=None)
 
 
+@patch('swb.local.parse_config')
+@patch('swb.local.back_up')
 @patch('sys.argv', [swb.__file__, '-q', 'tests/files/config.ini'])
 @patch('builtins.open')
-@patch('swb.local.back_up')
-@patch('swb.local.parse_config')
-def test_main_quiet(parse_config, back_up, builtin_open):
+def test_main_quiet(builtin_open, back_up, parse_config):
     """should silent stdout/stderr when utility is run in quiet mode"""
     swb.main()
     devnull = builtin_open.return_value.__enter__()
