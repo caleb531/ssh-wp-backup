@@ -192,3 +192,78 @@ def test_back_up_full(create_dir_structure, create_full_backup,
         backup_compressor='bzip2 -v')
     verify_backup_integrity.assert_called_once_with(
         'path/to/my backup.tar.bz2')
+
+
+@patch('subprocess.Popen', spec=subprocess.Popen)
+def test_decompress_backup(popen):
+    """should decompress the given backup file using the given decompressor"""
+    swb.decompress_backup(
+        backup_path='path/to/my backup.sql.bz2',
+        backup_decompressor='bzip2 -d')
+    popen.assert_called_once_with(
+        ['bzip2', '-d', 'path/to/my backup.sql.bz2'])
+    popen.return_value.wait.assert_called_once_with()
+
+
+@patch('subprocess.Popen', spec=subprocess.Popen)
+@patch('builtins.open')
+def test_replace_db(builtin_open, popen):
+    """should replace the MySQL database when restoring from backup"""
+    swb.replace_db(
+        db_name='mydb', db_host='myhost',
+        db_user='myname', db_password='mypassword',
+        db_path='path/to/my backup.sql')
+    builtin_open.assert_called_once_with(
+        'path/to/my backup.sql', 'r')
+    popen.assert_called_once_with(
+        ['mysql', 'mydb', '-h', 'myhost', '-u', 'myname', '-pmypassword'],
+        stdin=builtin_open.return_value.__enter__())
+    popen.return_value.wait.assert_called_once_with()
+
+
+@patch('os.remove')
+def test_purge_restored_backup(remove):
+    """should purge restored backup and database file after restore"""
+    swb.purge_restored_backup(
+        backup_path='path/to/my backup.sql.bz2',
+        db_path='path/to/my backup.sql')
+    remove.assert_any_call('path/to/my backup.sql')
+    remove.assert_any_call('path/to/my backup.sql.bz2')
+
+
+@patch('os.remove', side_effect=OSError)
+def test_purge_restored_backup_silent_fail(remove):
+    """should silently fail if restored database/backup file does not exist"""
+    swb.purge_restored_backup(
+        backup_path='path/to/my backup.sql.bz2',
+        db_path='path/to/my backup.sql')
+    nose.assert_equal(remove.call_count, 2)
+
+
+@patch('swb.remote.verify_backup_integrity')
+@patch('swb.remote.replace_db')
+@patch('swb.remote.purge_restored_backup')
+@patch('swb.remote.get_db_info', return_value={
+    'name': 'mydb',
+    'host': 'myhost',
+    'user': 'myname',
+    'password': 'mypassword'
+})
+@patch('swb.remote.decompress_backup')
+def test_restore(decompress_backup, get_db_info, purge_restored_backup,
+                 replace_db, verify_backup_integrity):
+    """should run restore procedure"""
+    swb.restore(
+        wordpress_path='~/path/to/my site',
+        backup_path='~/path/to/my site.sql.bz2',
+        backup_decompressor='bzip2 -d')
+    decompress_backup.assert_called_once_with(
+        backup_path=os.path.expanduser('~/path/to/my site.sql.bz2'),
+        backup_decompressor='bzip2 -d')
+    replace_db.assert_called_once_with(
+        db_name='mydb', db_host='myhost',
+        db_user='myname', db_password='mypassword',
+        db_path=os.path.expanduser('~/path/to/my site.sql'))
+    purge_restored_backup.assert_called_once_with(
+        backup_path=os.path.expanduser('~/path/to/my site.sql.bz2'),
+        db_path=os.path.expanduser('~/path/to/my site.sql'))

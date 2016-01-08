@@ -178,12 +178,6 @@ def decompress_backup(backup_path, backup_decompressor):
     compressor.wait()
 
 
-# Construct path to decompressed database file from given backup file
-def get_db_path(backup_path):
-
-    return os.path.splitext(backup_path)[0]
-
-
 # Replace a WordPress database with the database at the given path
 def replace_db(db_name, db_host, db_user, db_password, db_path):
 
@@ -206,6 +200,9 @@ def purge_restored_backup(backup_path, db_path):
 
     try:
         os.remove(db_path)
+    except OSError:
+        pass
+    try:
         os.remove(backup_path)
     except OSError:
         pass
@@ -214,18 +211,22 @@ def purge_restored_backup(backup_path, db_path):
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path, backup_decompressor):
 
+    wordpress_path = os.path.expanduser(wordpress_path)
     backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
-    decompress_backup(backup_path, backup_decompressor)
+    decompress_backup(
+        backup_path=backup_path,
+        backup_decompressor=backup_decompressor)
 
     db_info = get_db_info(wordpress_path)
-    db_path = get_db_path(backup_path)
+    db_path = os.path.splitext(backup_path)[0]
 
     replace_db(
-        db_info['name'], db_info['host'],
-        db_info['user'], db_info['password'], db_path)
+        db_name=db_info['name'], db_host=db_info['host'],
+        db_user=db_info['user'], db_password=db_info['password'],
+        db_path=db_path)
 
-    purge_restored_backup(backup_path, db_path)
+    purge_restored_backup(backup_path=backup_path, db_path=db_path)
 
 
 def main():
