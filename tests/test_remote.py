@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import io
 import os
 import os.path
 import subprocess
+import tarfile
 import nose.tools as nose
 import swb.remote as swb
 from mock import call, Mock, patch
@@ -39,7 +41,7 @@ def test_get_db_info(read_wp_config):
     nose.assert_equal(db_info['collate'], '')
 
 
-@patch('subprocess.Popen')
+@patch('subprocess.Popen', spec=subprocess.Popen)
 def test_get_mysqldump(popen):
     """should retrieve correct mysqldump subprocess object"""
     mysqldump = swb.get_mysqldump(
@@ -49,6 +51,7 @@ def test_get_mysqldump(popen):
         'mysqldump', 'mydb', '-h', 'myhost', '-u', 'myname', '-pmypassword',
         '--add-drop-table'], stdout=subprocess.PIPE)
     nose.assert_equal(mysqldump, popen.return_value)
+    popen.return_value.wait.assert_not_called()
 
 
 @patch('builtins.open')
@@ -107,3 +110,31 @@ def test_purge_downloaded_backup(remove):
     """should purge the downloaded backup file by removing it"""
     swb.purge_downloaded_backup('a/b c/d')
     remove.assert_called_once_with('a/b c/d')
+
+
+@patch('subprocess.Popen', spec=subprocess.Popen)
+@patch('builtins.open')
+def test_compress_tar(builtin_open, popen):
+    """should write a compressed tar file with the given contents"""
+    tar_out = io.BytesIO()
+    tar_out.write(b'tar contents')
+    swb.compress_tar(tar_out, 'a/b c/d', 'bzip2 -v')
+    popen.assert_called_once_with(
+        ['bzip2', '-v'],
+        stdin=subprocess.PIPE,
+        stdout=builtin_open.return_value.__enter__())
+    nose.assert_list_equal(popen.return_value.mock_calls, [
+        call.communicate(input=b'tar contents'), call.wait()])
+
+
+@patch('tarfile.TarInfo', spec=tarfile.TarInfo)
+def test_add_db_to_tar(tarinfo):
+    """should add database contents to tar file under the given name"""
+    tar_file = Mock(spec=tarfile.TarFile)
+    swb.add_db_to_tar(tar_file, 'mysite.sql', b'db contents')
+    nose.assert_equal(tarinfo.return_value.size, 11)
+    nose.assert_equal(tar_file.addfile.call_count, 1)
+    nose.assert_equal(
+        tar_file.addfile.call_args_list[0][0][0], tarinfo.return_value)
+    nose.assert_equal(
+        tar_file.addfile.call_args_list[0][0][1].getvalue(), b'db contents')

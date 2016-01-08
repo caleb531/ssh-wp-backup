@@ -3,10 +3,11 @@
 import configparser
 import os
 import os.path
+import subprocess
 import nose.tools as nose
 import swb.local as swb
 from time import strftime
-from mock import ANY, call, NonCallableMock, patch
+from mock import ANY, call, patch
 
 
 def test_parse_config():
@@ -61,10 +62,11 @@ def test_quote_arg_py32(shlex):
     nose.assert_equal(quoted_arg, '\'a/b c/d\'')
 
 
-@patch('subprocess.Popen', return_value=NonCallableMock(returncode=0))
+@patch('subprocess.Popen', spec=subprocess.Popen)
 @patch('builtins.open')
 def test_exec_on_remote(builtin_open, popen):
     """should execute script on remote server"""
+    popen.return_value.returncode = 0
     swb.exec_on_remote(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         action='back-up',
@@ -79,10 +81,11 @@ def test_exec_on_remote(builtin_open, popen):
 
 
 @patch('sys.exit')
-@patch('subprocess.Popen', return_value=NonCallableMock(returncode=3))
+@patch('subprocess.Popen', spec=subprocess.Popen)
 @patch('builtins.open')
 def test_exec_on_remote_nonzero_return(builtin_open, popen, exit):
     """should exit script if nonzero status code is returned"""
+    popen.return_value.returncode = 3
     swb.exec_on_remote(
         ssh_user='a', ssh_hostname='b.com', ssh_port='2222',
         action='c', action_args=['d', 'e', 'f', 'g'],
@@ -90,7 +93,7 @@ def test_exec_on_remote_nonzero_return(builtin_open, popen, exit):
     exit.assert_called_once_with(3)
 
 
-@patch('subprocess.Popen')
+@patch('subprocess.Popen', spec=subprocess.Popen)
 def test_transfer_file_download(popen):
     """should download backup from remote server when backing up"""
     swb.transfer_file(
@@ -103,7 +106,7 @@ def test_transfer_file_download(popen):
     popen.return_value.wait.assert_called_once_with()
 
 
-@patch('subprocess.Popen')
+@patch('subprocess.Popen', spec=subprocess.Popen)
 def test_transfer_file_upload(popen):
     """should upload backup to remote server when restoring"""
     swb.transfer_file(
