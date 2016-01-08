@@ -150,22 +150,22 @@ def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
 
     if full_backup == 'True':
 
-        # backup_path is assumed to refer to entire site directory backup
         db_contents = get_uncompressed_db(
-            db_info['name'], db_info['host'],
-            db_info['user'], db_info['password'])
+            db_name=db_info['name'], db_host=db_info['host'],
+            db_user=db_info['user'], db_password=db_info['password'])
+        # backup_path is assumed to refer to entire site directory backup
         create_full_backup(
-            wordpress_path, db_contents,
-            backup_path, backup_compressor)
+            wordpress_path=wordpress_path, db_contents=db_contents,
+            backup_path=backup_path, backup_compressor=backup_compressor)
 
     else:
 
         # backup_path is assumed to refer to SQL database file backup
-        db_info = get_db_info(wordpress_path)
         dump_compressed_db(
-            db_info['name'], db_info['host'],
-            db_info['user'], db_info['password'],
-            backup_compressor, backup_path)
+            db_name=db_info['name'], db_host=db_info['host'],
+            db_user=db_info['user'], db_password=db_info['password'],
+            backup_compressor=backup_compressor,
+            backup_path=backup_path)
 
     verify_backup_integrity(backup_path)
 

@@ -138,3 +138,57 @@ def test_add_db_to_tar(tarinfo):
         tar_file.addfile.call_args_list[0][0][0], tarinfo.return_value)
     nose.assert_equal(
         tar_file.addfile.call_args_list[0][0][1].getvalue(), b'db contents')
+
+
+@patch('swb.remote.compress_tar')
+@patch('swb.remote.add_db_to_tar')
+@patch('tarfile.open', spec=tarfile.TarFile)
+@patch('io.BytesIO', spec=io.BytesIO)
+def test_create_full_backup(bytesio, tarfile_open,
+                            add_db_to_tar, compress_tar):
+    """should create compressed full backup"""
+    swb.create_full_backup(
+        wordpress_path='path/to/my site',
+        db_contents=b'db contents',
+        backup_path='my backup.tar.bz2',
+        backup_compressor='bzip2 -v')
+    tar_file_obj = tarfile.open.return_value.__enter__()
+    tarfile.open.assert_called_once_with(
+        fileobj=bytesio.return_value, mode='w')
+    tar_file_obj.add.assert_called_once_with(
+        'path/to/my site', arcname='my site')
+    add_db_to_tar.assert_called_once_with(
+        tar_file_obj, 'my site.sql', b'db contents')
+
+
+@patch('swb.remote.verify_backup_integrity')
+@patch('swb.remote.get_uncompressed_db', return_value=b'db contents')
+@patch('swb.remote.get_db_info', return_value={
+    'name': 'mydb',
+    'host': 'myhost',
+    'user': 'myname',
+    'password': 'mypassword'
+})
+@patch('swb.remote.create_full_backup')
+@patch('swb.remote.create_dir_structure')
+def test_back_up_full(create_dir_structure, create_full_backup,
+                      get_db_info, get_uncompressed_db,
+                      verify_backup_integrity):
+    """should perform a full backup"""
+    swb.back_up(
+        wordpress_path='path/to/my site',
+        backup_compressor='bzip2 -v',
+        backup_path='path/to/my backup.tar.bz2',
+        full_backup='True')
+    create_dir_structure.assert_called_once_with(
+        'path/to/my backup.tar.bz2')
+    get_uncompressed_db.assert_called_once_with(
+        db_name='mydb', db_host='myhost',
+        db_user='myname', db_password='mypassword')
+    create_full_backup.assert_called_once_with(
+        wordpress_path='path/to/my site',
+        db_contents=b'db contents',
+        backup_path='path/to/my backup.tar.bz2',
+        backup_compressor='bzip2 -v')
+    verify_backup_integrity.assert_called_once_with(
+        'path/to/my backup.tar.bz2')
