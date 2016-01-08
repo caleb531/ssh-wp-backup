@@ -135,7 +135,7 @@ def download_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
 
 # Uploads the given local backup to the given remote destination
 def upload_local_backup(ssh_user, ssh_hostname, ssh_port, *,
-                        remote_backup_path, local_backup_path,
+                        local_backup_path, remote_backup_path,
                         stdout, stderr):
 
     transfer_file(
@@ -276,8 +276,8 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         ssh_user=config.get('ssh', 'user'),
         ssh_hostname=config.get('ssh', 'hostname'),
         ssh_port=config.get('ssh', 'port'),
+        local_backup_path=local_backup_path,
         remote_backup_path=expanded_remote_backup_path,
-        local_backup_path=config.get('paths', 'local_backup'),
         backup_compressor=config.get('backup', 'compressor'),
         full_backup=config.getboolean('backup', 'full_backup'),
         stdout=stdout, stderr=stderr)

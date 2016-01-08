@@ -270,7 +270,7 @@ def test_back_up(create_dir_structure, create_remote_backup,
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         wordpress_path='~/public_html/mysite',
         remote_backup_path=expanded_remote_backup_path,
-        backup_compressor='bzip2',
+        backup_compressor='bzip2 -v',
         full_backup=False,
         stdout=1, stderr=2)
     create_dir_structure.assert_called_once_with(
@@ -303,6 +303,24 @@ def test_back_up_purge_oldest(create_dir_structure, create_remote_backup,
         local_backup_path=os.path.expanduser(
             '~/Backups/%y/%m/%d/mysite.sql.bz2'),
         max_local_backups=3)
+
+
+@patch('swb.local.upload_local_backup')
+@patch('swb.local.restore_remote_backup')
+def test_restore(restore_remote_backup, upload_local_backup):
+    """should run correct restore procedure"""
+    config = configparser.RawConfigParser()
+    config.read('tests/files/config.ini')
+    swb.restore(
+        config, local_backup_path='a/b/c.tar.bz2',
+        stdout=1, stderr=2)
+    expanded_remote_backup_path = strftime(
+        config.get('paths', 'remote_backup'))
+    upload_local_backup.assert_called_once_with(
+        ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
+        local_backup_path='a/b/c.tar.bz2',
+        remote_backup_path=expanded_remote_backup_path,
+        backup_compressor='bzip2 -v', full_backup=False, stdout=1, stderr=2)
 
 
 @patch('swb.local.parse_config')
