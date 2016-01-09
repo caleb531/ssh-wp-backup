@@ -53,13 +53,23 @@ def test_quote_arg(unquote_home_dir):
     unquote_home_dir.assert_called_once_with('\'a/b c/d\'')
 
 
+@patch('swb.local.unquote_home_dir', side_effect=lambda x: x)
+def test_quote_arg_str(unquote_home_dir):
+    """should correctly quote arguments passed to the shell"""
+    quoted_arg = swb.quote_arg('a/b c/d')
+    nose.assert_equal(quoted_arg, '\'a/b c/d\'')
+    unquote_home_dir.assert_called_once_with('\'a/b c/d\'')
+
+
+@patch('swb.local.unquote_home_dir', side_effect=lambda x: x)
 @patch('swb.local.shlex')
-def test_quote_arg_py32(shlex):
+def test_quote_arg_py32(shlex, unquote_home_dir):
     """should correctly quote arguments passed to the shell on Python 3.2"""
     del shlex.quote
     nose.assert_false(hasattr(shlex, 'quote'))
     quoted_arg = swb.quote_arg('a/b c/d')
     nose.assert_equal(quoted_arg, '\'a/b c/d\'')
+    unquote_home_dir.assert_called_once_with('\'a/b c/d\'')
 
 
 @patch('subprocess.Popen', spec=subprocess.Popen)
@@ -165,11 +175,12 @@ def test_restore_remote_backup(exec_on_remote):
     swb.restore_remote_backup(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
-        backup_decompressor='bzip2 -v',
+        backup_decompressor='bzip2 -v', full_backup=False,
         stdout=1, stderr=2)
     exec_on_remote.assert_called_once_with(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
-        action='restore', action_args=['a/b c/d', 'e/f g/h', 'bzip2 -v'],
+        action='restore',
+        action_args=['a/b c/d', 'e/f g/h', 'bzip2 -v', False],
         stdout=1, stderr=2)
 
 
@@ -323,7 +334,7 @@ def test_restore(restore_remote_backup, upload_local_backup):
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         local_backup_path='a/b/c.tar.bz2',
         remote_backup_path=expanded_remote_backup_path,
-        backup_compressor='bzip2 -v', full_backup=False, stdout=1, stderr=2)
+        backup_compressor='bzip2 -v', stdout=1, stderr=2)
 
 
 @patch('swb.local.parse_config')

@@ -151,7 +151,7 @@ def upload_local_backup(ssh_user, ssh_hostname, ssh_port, *,
 # Restores the local backup after upload to remote
 def restore_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
                           wordpress_path, remote_backup_path,
-                          backup_decompressor, stdout, stderr):
+                          backup_decompressor, full_backup, stdout, stderr):
 
     exec_on_remote(
         ssh_user=ssh_user,
@@ -161,7 +161,8 @@ def restore_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
         action_args=[
             wordpress_path,
             remote_backup_path,
-            backup_decompressor
+            backup_decompressor,
+            full_backup
         ],
         stdout=stdout, stderr=stderr)
 
@@ -279,7 +280,6 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         local_backup_path=local_backup_path,
         remote_backup_path=expanded_remote_backup_path,
         backup_compressor=config.get('backup', 'compressor'),
-        full_backup=config.getboolean('backup', 'full_backup'),
         stdout=stdout, stderr=stderr)
 
     restore_remote_backup(
@@ -289,7 +289,9 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         action='restore',
         wordpress_path=config.get('paths', 'wordpress'),
         remote_backup_path=config.get('paths', 'remote_backup'),
-        backup_decompressor=config.get('backup', 'decompressor'))
+        backup_decompressor=config.get('backup', 'decompressor'),
+        full_backup=config.getboolean('backup', 'full_backup', fallback=False),
+        stdout=stdout, stderr=stderr)
 
 
 # Parse command line arguments passed to the local driver
