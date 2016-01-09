@@ -209,7 +209,7 @@ def purge_restored_backup(backup_path, db_path):
 
 
 # Restore WordPress database using the given remote backup
-def restore(wordpress_path, backup_path, backup_decompressor):
+def restore(wordpress_path, backup_path, backup_decompressor, full_backup):
 
     wordpress_path = os.path.expanduser(wordpress_path)
     backup_path = os.path.expanduser(backup_path)

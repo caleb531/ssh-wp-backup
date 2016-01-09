@@ -279,14 +279,12 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         ssh_port=config.get('ssh', 'port'),
         local_backup_path=local_backup_path,
         remote_backup_path=expanded_remote_backup_path,
-        backup_compressor=config.get('backup', 'compressor'),
         stdout=stdout, stderr=stderr)
 
     restore_remote_backup(
         ssh_user=config.get('ssh', 'user'),
         ssh_hostname=config.get('ssh', 'hostname'),
         ssh_port=config.get('ssh', 'port'),
-        action='restore',
         wordpress_path=config.get('paths', 'wordpress'),
         remote_backup_path=config.get('paths', 'remote_backup'),
         backup_decompressor=config.get('backup', 'decompressor'),

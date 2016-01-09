@@ -295,7 +295,8 @@ def test_restore(decompress_backup, get_db_info, purge_restored_backup,
     swb.restore(
         wordpress_path='~/path/to/my site',
         backup_path='~/path/to/my site.sql.bz2',
-        backup_decompressor='bzip2 -d')
+        backup_decompressor='bzip2 -d',
+        full_backup='False')
     decompress_backup.assert_called_once_with(
         backup_path=os.path.expanduser('~/path/to/my site.sql.bz2'),
         backup_decompressor='bzip2 -d')

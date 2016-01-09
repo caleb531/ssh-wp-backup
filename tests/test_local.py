@@ -334,7 +334,7 @@ def test_restore(restore_remote_backup, upload_local_backup):
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         local_backup_path='a/b/c.tar.bz2',
         remote_backup_path=expanded_remote_backup_path,
-        backup_compressor='bzip2 -v', stdout=1, stderr=2)
+        stdout=1, stderr=2)
 
 
 @patch('swb.local.parse_config')
