@@ -80,12 +80,12 @@ def test_exec_on_remote(builtin_open, popen):
     swb.exec_on_remote(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         action='back-up',
-        action_args=['~/public_html/mysite', 'bzip2 -v', 'a/b c/d', 'False'],
+        action_args=['~/public_html/mysite', 'bzip2 -v', 'a/b c/d'],
         stdout=1, stderr=2)
     popen.assert_called_once_with([
         'ssh', '-p 2222', 'myname@mysite.com',
         'python3', '-', 'back-up', '~/\'public_html/mysite\'',
-        '\'bzip2 -v\'', '\'a/b c/d\'', 'False'],
+        '\'bzip2 -v\'', '\'a/b c/d\''],
         stdin=builtin_open.return_value.__enter__(), stdout=1, stderr=2)
     popen.return_value.wait.assert_called_once_with()
 
@@ -135,11 +135,11 @@ def test_create_remote_backup(exec_on_remote):
     swb.create_remote_backup(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
-        backup_compressor='bzip2 -v', full_backup=True,
+        backup_compressor='bzip2 -v',
         stdout=1, stderr=2)
     exec_on_remote.assert_called_once_with(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
-        action='back-up', action_args=['a/b c/d', 'bzip2 -v', 'e/f g/h', True],
+        action='back-up', action_args=['a/b c/d', 'bzip2 -v', 'e/f g/h'],
         stdout=1, stderr=2)
 
 
@@ -175,12 +175,12 @@ def test_restore_remote_backup(exec_on_remote):
     swb.restore_remote_backup(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         wordpress_path='a/b c/d', remote_backup_path='e/f g/h',
-        backup_decompressor='bzip2 -v', full_backup=False,
+        backup_decompressor='bzip2 -v',
         stdout=1, stderr=2)
     exec_on_remote.assert_called_once_with(
         ssh_user='myname', ssh_hostname='mysite.com', ssh_port='2222',
         action='restore',
-        action_args=['a/b c/d', 'e/f g/h', 'bzip2 -v', False],
+        action_args=['a/b c/d', 'e/f g/h', 'bzip2 -v'],
         stdout=1, stderr=2)
 
 
@@ -285,7 +285,6 @@ def test_back_up(create_dir_structure, create_remote_backup,
         wordpress_path='~/public_html/mysite',
         remote_backup_path=expanded_remote_backup_path,
         backup_compressor='bzip2 -v',
-        full_backup=False,
         stdout=1, stderr=2)
     create_dir_structure.assert_called_once_with(
         local_backup_path=expanded_local_backup_path)

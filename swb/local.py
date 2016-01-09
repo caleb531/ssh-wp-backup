@@ -102,7 +102,7 @@ def transfer_file(ssh_user, ssh_hostname, ssh_port, *,
 # Execute remote backup script to create remote backup
 def create_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
                          wordpress_path, remote_backup_path,
-                         backup_compressor, full_backup, stdout, stderr):
+                         backup_compressor, stdout, stderr):
 
     exec_on_remote(
         ssh_user=ssh_user,
@@ -112,8 +112,7 @@ def create_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
         action_args=[
             wordpress_path,
             backup_compressor,
-            remote_backup_path,
-            full_backup
+            remote_backup_path
         ],
         stdout=stdout, stderr=stderr)
 
@@ -151,7 +150,7 @@ def upload_local_backup(ssh_user, ssh_hostname, ssh_port, *,
 # Restores the local backup after upload to remote
 def restore_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
                           wordpress_path, remote_backup_path,
-                          backup_decompressor, full_backup, stdout, stderr):
+                          backup_decompressor, stdout, stderr):
 
     exec_on_remote(
         ssh_user=ssh_user,
@@ -161,8 +160,7 @@ def restore_remote_backup(ssh_user, ssh_hostname, ssh_port, *,
         action_args=[
             wordpress_path,
             remote_backup_path,
-            backup_decompressor,
-            full_backup
+            backup_decompressor
         ],
         stdout=stdout, stderr=stderr)
 
@@ -241,7 +239,6 @@ def back_up(config, *, stdout=None, stderr=None):
         wordpress_path=config.get('paths', 'wordpress'),
         remote_backup_path=expanded_remote_backup_path,
         backup_compressor=config.get('backup', 'compressor'),
-        full_backup=config.getboolean('backup', 'full_backup', fallback=False),
         stdout=stdout, stderr=stderr)
 
     create_dir_structure(local_backup_path=expanded_local_backup_path)
@@ -288,7 +285,6 @@ def restore(config, *, local_backup_path, stdout=None, stderr=None):
         wordpress_path=config.get('paths', 'wordpress'),
         remote_backup_path=config.get('paths', 'remote_backup'),
         backup_decompressor=config.get('backup', 'decompressor'),
-        full_backup=config.getboolean('backup', 'full_backup', fallback=False),
         stdout=stdout, stderr=stderr)
 
 

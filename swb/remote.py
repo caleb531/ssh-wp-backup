@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-import io
 import os
 import os.path
 import re
 import shlex
 import subprocess
 import sys
-import tarfile
 
 
 # Read contents of wp-config.php for a WordPress installation
@@ -45,8 +43,9 @@ def get_db_info(wordpress_path):
     return db_info
 
 
-# Dump MySQL database to file and return subprocess
-def get_mysqldump(db_name, db_host, db_user, db_password):
+# Dump MySQL database to compressed file
+def dump_compressed_db(db_name, db_host, db_user, db_password,
+                       backup_compressor, backup_path):
 
     mysqldump = subprocess.Popen([
         'mysqldump',
@@ -56,15 +55,6 @@ def get_mysqldump(db_name, db_host, db_user, db_password):
         '-p{}'.format(db_password),
         '--add-drop-table'
     ], stdout=subprocess.PIPE)
-
-    return mysqldump
-
-
-# Dump MySQL database to compressed file
-def dump_compressed_db(db_name, db_host, db_user, db_password,
-                       backup_compressor, backup_path):
-
-    mysqldump = get_mysqldump(db_name, db_host, db_user, db_password)
 
     # Create remote backup so as to write output of dump/compress to file
     with open(backup_path, 'w') as backup_file:
@@ -76,16 +66,6 @@ def dump_compressed_db(db_name, db_host, db_user, db_password,
         # Wait for remote to dump and compress database
         mysqldump.wait()
         compressor.wait()
-
-
-# Dump MySQL database to uncompressed file at the given path
-def get_uncompressed_db(db_name, db_host, db_user, db_password):
-
-    mysqldump = get_mysqldump(db_name, db_host, db_user, db_password)
-    db_contents = mysqldump.communicate()[0]
-    mysqldump.wait()
-
-    return db_contents
 
 
 # Verify integrity of remote backup by checking its size
@@ -102,70 +82,19 @@ def purge_downloaded_backup(backup_path):
     os.remove(backup_path)
 
 
-# Compressed an existing tar backup file using the chosen compressor
-def compress_tar(tar_out, backup_path, backup_compressor):
-
-    with open(backup_path, 'w') as backup_file:
-
-        compressor = subprocess.Popen(
-            shlex.split(backup_compressor),
-            stdin=subprocess.PIPE, stdout=backup_file)
-        compressor.communicate(input=tar_out.getvalue())
-        compressor.wait()
-
-
-# Add a database to the given tar file under the given name
-def add_db_to_tar(tar_file, db_file_name, db_contents):
-
-    db_file_obj = io.BytesIO()
-    db_file_obj.write(db_contents)
-    db_tar_info = tarfile.TarInfo(db_file_name)
-    db_tar_info.size = len(db_file_obj.getvalue())
-    db_file_obj.seek(0)
-    tar_file.addfile(db_tar_info, db_file_obj)
-
-
-# Create the full backup file by tar'ing both the wordpress site directory and
-# the the dumped database contents
-def create_full_backup(wordpress_path, db_contents,
-                       backup_path, backup_compressor):
-
-    wordpress_site_name = os.path.basename(wordpress_path)
-    db_file_name = '{}.sql'.format(wordpress_site_name)
-
-    tar_out = io.BytesIO()
-    with tarfile.open(fileobj=tar_out, mode='w') as tar_file:
-
-        tar_file.add(wordpress_path, arcname=wordpress_site_name)
-        add_db_to_tar(tar_file, db_file_name, db_contents)
-        compress_tar(tar_out, backup_path, backup_compressor)
-
-
 # Back up WordPress database or installation
-def back_up(wordpress_path, backup_compressor, backup_path, full_backup):
+def back_up(wordpress_path, backup_compressor, backup_path):
 
     backup_path = os.path.expanduser(backup_path)
     create_dir_structure(backup_path)
     db_info = get_db_info(wordpress_path)
 
-    if full_backup == 'True':
-
-        db_contents = get_uncompressed_db(
-            db_name=db_info['name'], db_host=db_info['host'],
-            db_user=db_info['user'], db_password=db_info['password'])
-        # backup_path is assumed to refer to entire site directory backup
-        create_full_backup(
-            wordpress_path=wordpress_path, db_contents=db_contents,
-            backup_path=backup_path, backup_compressor=backup_compressor)
-
-    else:
-
-        # backup_path is assumed to refer to SQL database file backup
-        dump_compressed_db(
-            db_name=db_info['name'], db_host=db_info['host'],
-            db_user=db_info['user'], db_password=db_info['password'],
-            backup_compressor=backup_compressor,
-            backup_path=backup_path)
+    # backup_path is assumed to refer to SQL database file backup
+    dump_compressed_db(
+        db_name=db_info['name'], db_host=db_info['host'],
+        db_user=db_info['user'], db_password=db_info['password'],
+        backup_compressor=backup_compressor,
+        backup_path=backup_path)
 
     verify_backup_integrity(backup_path)
 
@@ -209,7 +138,7 @@ def purge_restored_backup(backup_path, db_path):
 
 
 # Restore WordPress database using the given remote backup
-def restore(wordpress_path, backup_path, backup_decompressor, full_backup):
+def restore(wordpress_path, backup_path, backup_decompressor):
 
     wordpress_path = os.path.expanduser(wordpress_path)
     backup_path = os.path.expanduser(backup_path)
