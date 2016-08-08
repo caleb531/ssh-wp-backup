@@ -33,7 +33,7 @@ def get_db_info(wordpress_path):
     db_info = {}
 
     # Find all PHP constant definitions pertaining to database
-    matches = re.finditer('define\(\'DB_([A-Z]+)\', \'(.*?)\'\)',
+    matches = re.finditer('define\(\s*\'DB_([A-Z]+)\',\s*\'(.*?)\'\s*\)',
                           wp_config_contents)
     for match in matches:
         key = match.group(1).lower()
@@ -43,9 +43,9 @@ def get_db_info(wordpress_path):
     return db_info
 
 
-# Dump MySQL database to compressed file on remote
-def dump_db(db_name, db_host, db_user, db_password,
-            backup_compressor, backup_path):
+# Dump MySQL database to compressed file
+def dump_compressed_db(db_name, db_host, db_user, db_password,
+                       backup_compressor, backup_path):
 
     mysqldump = subprocess.Popen([
         'mysqldump',
@@ -59,9 +59,9 @@ def dump_db(db_name, db_host, db_user, db_password,
     # Create remote backup so as to write output of dump/compress to file
     with open(backup_path, 'w') as backup_file:
 
-        compressor = subprocess.Popen(shlex.split(backup_compressor),
-                                      stdin=mysqldump.stdout,
-                                      stdout=backup_file)
+        compressor = subprocess.Popen(
+            shlex.split(backup_compressor),
+            stdin=mysqldump.stdout, stdout=backup_file)
 
         # Wait for remote to dump and compress database
         mysqldump.wait()
@@ -72,6 +72,7 @@ def dump_db(db_name, db_host, db_user, db_password,
 def verify_backup_integrity(backup_path):
 
     if os.path.getsize(backup_path) < 1024:
+        os.remove(backup_path)
         raise OSError('Backup is corrupted (too small). Aborting.')
 
 
@@ -81,30 +82,29 @@ def purge_downloaded_backup(backup_path):
     os.remove(backup_path)
 
 
+# Back up WordPress database or installation
 def back_up(wordpress_path, backup_compressor, backup_path):
 
     backup_path = os.path.expanduser(backup_path)
     create_dir_structure(backup_path)
-
     db_info = get_db_info(wordpress_path)
-    dump_db(db_info['name'], db_info['host'],
-            db_info['user'], db_info['password'],
-            backup_compressor, backup_path)
+
+    # backup_path is assumed to refer to SQL database file backup
+    dump_compressed_db(
+        db_name=db_info['name'], db_host=db_info['host'],
+        db_user=db_info['user'], db_password=db_info['password'],
+        backup_compressor=backup_compressor,
+        backup_path=backup_path)
+
     verify_backup_integrity(backup_path)
 
 
 # Decompress the given backup file to a database file in the same directory
 def decompress_backup(backup_path, backup_decompressor):
 
-    compressor = subprocess.Popen(shlex.split(backup_decompressor) +
-                                  [backup_path])
+    compressor = subprocess.Popen(
+        shlex.split(backup_decompressor) + [backup_path])
     compressor.wait()
-
-
-# Construct path to decompressed database file from given backup file
-def get_db_path(backup_path):
-
-    return re.sub('\.([A-Za-z0-9]+)$', '', backup_path)
 
 
 # Replace a WordPress database with the database at the given path
@@ -129,6 +129,9 @@ def purge_restored_backup(backup_path, db_path):
 
     try:
         os.remove(db_path)
+    except OSError:
+        pass
+    try:
         os.remove(backup_path)
     except OSError:
         pass
@@ -137,17 +140,22 @@ def purge_restored_backup(backup_path, db_path):
 # Restore WordPress database using the given remote backup
 def restore(wordpress_path, backup_path, backup_decompressor):
 
+    wordpress_path = os.path.expanduser(wordpress_path)
     backup_path = os.path.expanduser(backup_path)
     verify_backup_integrity(backup_path)
-    decompress_backup(backup_path, backup_decompressor)
+    decompress_backup(
+        backup_path=backup_path,
+        backup_decompressor=backup_decompressor)
 
     db_info = get_db_info(wordpress_path)
-    db_path = get_db_path(backup_path)
+    db_path = os.path.splitext(backup_path)[0]
 
-    replace_db(db_info['name'], db_info['host'],
-               db_info['user'], db_info['password'], db_path)
+    replace_db(
+        db_name=db_info['name'], db_host=db_info['host'],
+        db_user=db_info['user'], db_password=db_info['password'],
+        db_path=db_path)
 
-    purge_restored_backup(backup_path, db_path)
+    purge_restored_backup(backup_path=backup_path, db_path=db_path)
 
 
 def main():
